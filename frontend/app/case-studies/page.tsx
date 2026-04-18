@@ -44,7 +44,7 @@ export default function CaseStudiesPage() {
                 </div>
               </div>
               <p>
-                By leveraging SafeGuard AI's multilingual grooming detection, CyberShield India was able to screen significantly more cases without increasing team size. The explainable AI allowed them to train new analysts faster.
+                By leveraging SafeGuard AI&apos;s multilingual grooming detection, CyberShield India was able to screen significantly more cases without increasing team size. The explainable AI allowed them to train new analysts faster.
               </p>
             </section>
 
@@ -58,7 +58,7 @@ export default function CaseStudiesPage() {
                 </div>
               </div>
               <p>
-                Research collaboration validated SafeGuard AI's effectiveness in detecting harmful content in code-mixed Indian languages. Published in peer-reviewed venues.
+                Research collaboration validated SafeGuard AI&apos;s effectiveness in detecting harmful content in code-mixed Indian languages. Published in peer-reviewed venues.
               </p>
             </section>
 

@@ -76,7 +76,7 @@ export default function SupportPage() {
               <div className="space-y-3">
                 <details className="p-4 rounded-lg bg-slate-50 cursor-pointer">
                   <summary className="font-bold text-white">How do I generate an FIR?</summary>
-                  <p className="mt-2 text-sm">Navigate to your dashboard, complete the analysis, and click "Generate FIR." The system will create a legally valid report.</p>
+                  <p className="mt-2 text-sm">Navigate to your dashboard, complete the analysis, and click &ldquo;Generate FIR.&rdquo; The system will create a legally valid report.</p>
                 </details>
                 <details className="p-4 rounded-lg bg-slate-50 cursor-pointer">
                   <summary className="font-bold text-white">What languages are supported?</summary>
