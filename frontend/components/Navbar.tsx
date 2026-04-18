@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowUpRight, Menu, ShieldCheck, X, LogOut, Settings, Moon, Sun } from "lucide-react";
+import { ArrowUpRight, Menu, ShieldCheck, X, Settings, Moon, Sun } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import { useTheme } from "@/hooks/useTheme";
 
@@ -118,7 +118,7 @@ export default function Navbar() {
                       }}
                       className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm text-red-600 hover:bg-red-50 transition"
                     >
-                      <LogOut size={14} /> Sign Out
+                      <span>🚪</span> Sign Out
                     </button>
                   </div>
                 </div>
