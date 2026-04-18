@@ -56,7 +56,7 @@ const handler = NextAuth({
         token.id = user.id;
         token.name = user.name;
         token.email = user.email;
-        token.picture = user.image;
+        token.picture = user.image ?? undefined;
       }
       // Store provider info
       if (account) {
@@ -67,7 +67,7 @@ const handler = NextAuth({
       if (profile) {
         token.email = profile.email;
         token.name = profile.name;
-        token.picture = profile.image;
+        token.picture = profile.image ?? undefined;
       }
       return token;
     },
