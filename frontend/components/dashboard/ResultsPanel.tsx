@@ -48,8 +48,9 @@ export default function ResultsPanel({ result, loading }: Props) {
       setFirId(fir_id);
       setShowFIRModal(true);
       toast.success("FIR generated successfully");
-    } catch (error: any) {
-      toast.error(error?.message || "FIR generation failed");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "FIR generation failed";
+      toast.error(message);
     } finally {
       setGeneratingFIR(false);
     }

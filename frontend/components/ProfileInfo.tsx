@@ -10,7 +10,7 @@ interface ProfileInfoProps {
 
 export default function ProfileInfo({ compact = false }: ProfileInfoProps) {
   const { data: session } = useSession();
-  const { profile } = useUserProfile();
+  useUserProfile();
 
   if (!session?.user) return null;
 

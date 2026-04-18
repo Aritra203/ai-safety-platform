@@ -44,8 +44,9 @@ export default function FIRModal({ firId, result, onClose }: Props) {
       });
       setSubmitted(true);
       toast.success("FIR report finalized");
-    } catch (error: any) {
-      toast.error(error?.message || "Failed to generate FIR");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to generate FIR";
+      toast.error(message);
     } finally {
       setSubmitting(false);
     }

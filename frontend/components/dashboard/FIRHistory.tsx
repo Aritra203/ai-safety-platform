@@ -39,8 +39,8 @@ export default function FIRHistory() {
       const response = await getFIRHistory(50, 0);
       setFirs(response.firs);
       setTotalCount(response.total);
-    } catch (err: any) {
-      const errorMsg = err?.message || "Failed to fetch FIR history";
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : "Failed to fetch FIR history";
       setError(errorMsg);
       toast.error(errorMsg);
     } finally {
@@ -63,8 +63,9 @@ export default function FIRHistory() {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
       toast.success("FIR downloaded successfully");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to download FIR");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to download FIR";
+      toast.error(message);
     }
   };
 

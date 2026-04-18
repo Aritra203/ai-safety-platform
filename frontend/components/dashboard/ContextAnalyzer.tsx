@@ -47,8 +47,9 @@ export default function ContextAnalyzer({ onResult, onLoading }: Props) {
       const result = await analyzeContext(validMessages);
       onResult(result);
       toast.success("Context analysis complete");
-    } catch (err: any) {
-      toast.error(err.message || "Analysis failed");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Analysis failed";
+      toast.error(message);
     } finally {
       setLoading(false);
       onLoading(false);

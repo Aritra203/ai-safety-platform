@@ -31,8 +31,9 @@ export default function TextAnalyzer({ onResult, onLoading }: Props) {
       const result = await analyzeText(text);
       onResult(result);
       toast.success("Analysis complete");
-    } catch (err: any) {
-      toast.error(err.message || "Analysis failed");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Analysis failed";
+      toast.error(message);
     } finally {
       setLoading(false);
       onLoading(false);

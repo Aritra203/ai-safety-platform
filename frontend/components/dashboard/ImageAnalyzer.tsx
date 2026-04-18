@@ -43,8 +43,9 @@ export default function ImageAnalyzer({ onResult, onLoading }: Props) {
       const result = await analyzeImage(formData);
       onResult(result);
       toast.success("Image analyzed successfully");
-    } catch (err: any) {
-      toast.error(err.message || "Image analysis failed");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Image analysis failed";
+      toast.error(message);
     } finally {
       setLoading(false);
       onLoading(false);
