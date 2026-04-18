@@ -1,8 +1,6 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { useUserProfile } from "@/hooks/useUserProfile";
-import { User, Calendar } from "lucide-react";
 
 interface ProfileInfoProps {
   compact?: boolean;
@@ -10,24 +8,8 @@ interface ProfileInfoProps {
 
 export default function ProfileInfo({ compact = false }: ProfileInfoProps) {
   const { data: session } = useSession();
-  useUserProfile();
 
   if (!session?.user) return null;
-
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return "Not provided";
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
-
-  const getGenderLabel = (gender?: string) => {
-    if (!gender) return "Not provided";
-    return gender.charAt(0).toUpperCase() + gender.slice(1).replace("-", " ");
-  };
 
   if (compact) {
     return (
@@ -50,11 +32,6 @@ export default function ProfileInfo({ compact = false }: ProfileInfoProps) {
           <div className="text-sm">
             <p className="font-semibold text-slate-900">{session.user.name}</p>
             <p className="text-xs text-slate-600">{session.user.email}</p>
-            {profile?.gender && (
-              <p className="text-xs text-slate-500">
-                {getGenderLabel(profile.gender)} • {formatDate(profile.dob)}
-              </p>
-            )}
           </div>
         </div>
       </div>
@@ -88,56 +65,6 @@ export default function ProfileInfo({ compact = false }: ProfileInfoProps) {
           </div>
         </div>
 
-        {/* Gender and DOB */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <User size={16} className="text-orange-600" />
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
-                Gender
-              </p>
-            </div>
-            <p className="text-base font-semibold text-slate-900">
-              {getGenderLabel(profile?.gender)}
-            </p>
-          </div>
-
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Calendar size={16} className="text-orange-600" />
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
-                Date of Birth
-              </p>
-            </div>
-            <p className="text-base font-semibold text-slate-900">
-              {formatDate(profile?.dob)}
-            </p>
-          </div>
-        </div>
-
-        {/* Organization and Role */}
-        {profile?.organization && (
-          <div className="pt-4 border-t border-slate-200">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600 mb-2">
-                  Organization
-                </p>
-                <p className="text-base font-semibold text-slate-900">
-                  {profile.organization}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600 mb-2">
-                  Role
-                </p>
-                <p className="text-base font-semibold text-slate-900 capitalize">
-                  {profile.role}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
