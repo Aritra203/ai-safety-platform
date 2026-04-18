@@ -1,6 +1,8 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import NextAuth, { type Session } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import { type JWT } from "next-auth/jwt";
+/* eslint-enable @typescript-eslint/no-unused-vars */
 
 declare module "next-auth" {
   interface Session {
