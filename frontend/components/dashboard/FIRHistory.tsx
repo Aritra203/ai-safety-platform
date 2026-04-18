@@ -17,11 +17,6 @@ interface FIRItem {
   pdf_url?: string;
 }
 
-interface FIRHistoryResponse {
-  firs: FIRItem[];
-  total: number;
-}
-
 export default function FIRHistory() {
   const [firs, setFirs] = useState<FIRItem[]>([]);
   const [loading, setLoading] = useState(true);

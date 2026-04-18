@@ -17,7 +17,7 @@ export default function SupportPage() {
 
         <article className="glass rounded-3xl p-8 md:p-12">
           <h1 className="text-4xl font-black text-white mb-4">Support Center</h1>
-          <p className="text-sm text-slate-400 mb-8">We're here to help you succeed with SafeGuard AI</p>
+          <p className="text-sm text-slate-400 mb-8">We&apos;re here to help you succeed with SafeGuard AI</p>
 
           <div className="prose prose-slate max-w-none space-y-8 text-slate-200">
             <section>
