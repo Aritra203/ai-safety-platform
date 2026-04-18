@@ -1,0 +1,88 @@
+"""
+SafeGuard AI — FastAPI Backend
+Main application entry point with all routes, middleware, and startup logic.
+"""
+
+import logging
+import sys
+from contextlib import asynccontextmanager
+from pathlib import Path
+
+# Ensure project-root modules (e.g., ai_services/) are importable when running from backend/
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
+
+from config.settings import settings
+from config.database import connect_db, disconnect_db, is_db_connected
+from routes.analysis import router as analysis_router
+from routes.fir import router as fir_router
+from routes.analytics import router as analytics_router
+
+# ── Logging ──────────────────────────────────────────────────────
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+)
+logger = logging.getLogger(__name__)
+
+
+# ── Lifespan (startup / shutdown) ────────────────────────────────
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info("🚀 SafeGuard AI starting up...")
+    await connect_db()
+    if is_db_connected():
+        logger.info("✅ MongoDB connected")
+    else:
+        logger.warning("⚠️ MongoDB not connected. API is running in degraded mode.")
+    yield
+    logger.info("🛑 SafeGuard AI shutting down...")
+    await disconnect_db()
+
+
+# ── App factory ──────────────────────────────────────────────────
+app = FastAPI(
+    title="SafeGuard AI",
+    description="AI-powered cyber safety & FIR generation platform",
+    version="3.1.0",
+    lifespan=lifespan,
+    docs_url="/docs",
+    redoc_url="/redoc",
+)
+
+# ── Middleware ───────────────────────────────────────────────────
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+# ── Routers ──────────────────────────────────────────────────────
+app.include_router(analysis_router, tags=["Analysis"])
+app.include_router(fir_router, tags=["FIR"])
+app.include_router(analytics_router, tags=["Analytics"])
+
+
+# ── Health check ─────────────────────────────────────────────────
+@app.get("/health", tags=["System"])
+async def health():
+    db_ok = is_db_connected()
+    return {
+        "status": "ok" if db_ok else "degraded",
+        "version": "3.1.0",
+        "service": "SafeGuard AI",
+        "database": "connected" if db_ok else "unavailable",
+    }
+
+
+@app.get("/", tags=["System"])
+async def root():
+    return {"message": "SafeGuard AI API — /docs for Swagger UI"}
