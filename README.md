@@ -378,6 +378,4 @@ pip install torch --index-url https://download.pytorch.org/whl/cu121
 MIT — see `LICENSE` for details.
 
 Built with ❤️ in India · SafeGuard AI v3.1.0
-#   a i - s a f e t y - p l a t f o r m  
- #   a i - s a f e t y - p l a t f o r m  
- 
+#
