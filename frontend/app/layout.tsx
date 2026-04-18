@@ -60,7 +60,6 @@ export default function RootLayout({
                 fontFamily: "var(--font-syne)",
                 boxShadow: "0 14px 40px rgba(15, 23, 42, 0.16)",
               },
-              unstyled: false,
             }}
           />
         </Providers>
