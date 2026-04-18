@@ -21,7 +21,7 @@ const handler = NextAuth({
     signIn: "/auth/signin",
   },
   events: {
-    async signIn({ user, profile, isNewUser }) {
+    async signIn({ user, isNewUser }) {
       // Log for debugging
       console.log("User signed in:", { user, isNewUser });
     },

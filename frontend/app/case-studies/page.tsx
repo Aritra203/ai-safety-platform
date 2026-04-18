@@ -83,7 +83,7 @@ export default function CaseStudiesPage() {
             <section>
               <h2 className="text-2xl font-bold text-white mb-3">Interested in a Case Study?</h2>
               <p>
-                If you'd like to share your success story or discuss a custom implementation, contact us at partnerships@safeguard-ai.com
+                If you&apos;d like to share your success story or discuss a custom implementation, contact us at partnerships@safeguard-ai.com
               </p>
             </section>
           </div>

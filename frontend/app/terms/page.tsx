@@ -37,7 +37,7 @@ export default function TermsPage() {
                 <li>Use the materials for any commercial purpose or for any public display</li>
                 <li>Attempt to decompile or reverse engineer any software contained on the platform</li>
                 <li>Remove any copyright or other proprietary notations from the materials</li>
-                <li>Transfer the materials to another person or "mirror" the materials on any other server</li>
+                <li>Transfer the materials to another person or &ldquo;mirror&rdquo; the materials on any other server</li>
               </ul>
             </section>
 

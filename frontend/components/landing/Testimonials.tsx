@@ -50,7 +50,7 @@ export function Testimonials() {
                 ))}
               </div>
 
-              <p className="text-sm leading-relaxed text-slate-700 dark:text-slate-300">"{item.quote}"</p>
+              <p className="text-sm leading-relaxed text-slate-700 dark:text-slate-300">&ldquo;{item.quote}&rdquo;</p>
 
               <div className="mt-6 flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-amber-500 text-sm font-bold text-white">

@@ -105,7 +105,7 @@ export default function AIDemo() {
               </div>
 
               <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm leading-relaxed text-slate-700">
-                "{current.text}"
+                &ldquo;{current.text}&rdquo;
               </div>
 
               <button
