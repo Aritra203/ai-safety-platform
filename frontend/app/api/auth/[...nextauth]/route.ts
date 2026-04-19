@@ -50,6 +50,13 @@ const handler = NextAuth({
     },
   },
   callbacks: {
+    async redirect({ url, baseUrl }) {
+      // Allow relative URLs
+      if (url.startsWith("/")) return `${baseUrl}${url}`;
+      // Allow same origin
+      else if (new URL(url).origin === baseUrl) return url;
+      return baseUrl;
+    },
     async jwt({ token, user, account, profile }) {
       // Store user info on initial sign in
       if (user) {

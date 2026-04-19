@@ -1,40 +1,26 @@
 "use client";
 
-import { signIn, useSession } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useEffect } from "react";
+import { signIn } from "next-auth/react";
+import { useSearchParams } from "next/navigation";
+import { useState } from "react";
 import { ArrowRight, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 export default function SignInContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const { data: session, status } = useSession();
   const [loading, setLoading] = useState(false);
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
-
-  // Redirect once session is established
-  useEffect(() => {
-    if (status === "authenticated" && session) {
-      const userProfile = localStorage.getItem("userProfile");
-      if (!userProfile) {
-        router.push("/onboarding");
-      } else {
-        router.push(callbackUrl);
-      }
-    }
-  }, [status, session, callbackUrl, router]);
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
     try {
-      // NextAuth will handle redirect with redirect: true
+      // NextAuth will handle the full redirect flow
       await signIn("google", {
-        redirect: true,
         callbackUrl,
+        redirect: true,
       });
     } catch (error) {
-      console.error("Sign in failed:", error);
+      console.error("Sign in error:", error);
       setLoading(false);
     }
   };
