@@ -6,7 +6,6 @@ Falls back to empty string on failure.
 
 import logging
 from io import BytesIO
-import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -34,32 +33,79 @@ def _preprocess_image(image):
     Handles contrast, deskew, and binarization for handwritten text.
     """
     try:
-        from PIL import Image, ImageEnhance
-        import cv2
+        from PIL import Image, ImageEnhance, ImageFilter, ImageOps
 
-        # Enhance contrast for better text visibility
-        enhancer = ImageEnhance.Contrast(image)
-        image = enhancer.enhance(1.5)  # 50% more contrast
+        # Normalize orientation metadata if present.
+        image = ImageOps.exif_transpose(image)
 
-        # Enhance sharpness
-        enhancer = ImageEnhance.Sharpness(image)
-        image = enhancer.enhance(1.3)
+        # Convert to grayscale and upscale small inputs to help handwritten OCR.
+        image = image.convert("L")
+        w, h = image.size
+        if max(w, h) < 1400:
+            image = image.resize((int(w * 2), int(h * 2)), resample=Image.Resampling.LANCZOS)
 
-        # Convert to numpy array for CV2 preprocessing
-        img_array = np.array(image)
-        
-        # Denoise if it's a color image
-        if len(img_array.shape) == 3:
-            img_array = cv2.fastNlMeansDenoisingColored(img_array, None, h=10, templateWindowSize=7, searchWindowSize=21)
-        else:
-            img_array = cv2.fastNlMeansDenoising(img_array, None, h=10, templateWindowSize=7, searchWindowSize=21)
-        
-        # Convert back to PIL
-        image = Image.fromarray(img_array)
-        
+        # Improve contrast and local edges for pen-stroke text.
+        image = ImageOps.autocontrast(image)
+        image = ImageEnhance.Contrast(image).enhance(1.8)
+        image = image.filter(ImageFilter.MedianFilter(size=3))
+
         return image
     except Exception as e:
         logger.warning("Image preprocessing failed (%s), proceeding without it", e)
+        return image
+
+
+def _pil_to_jpg_bytes(image: "Image") -> bytes:
+    """Encode PIL image to jpg bytes for OCR engines expecting file input."""
+    buffer = BytesIO()
+    image.save(buffer, format="JPEG", quality=95)
+    return buffer.getvalue()
+
+
+def _crop_text_region(image):
+    """Crop likely text region to improve OCR on images with large empty margins."""
+    try:
+        import cv2
+        import numpy as np
+
+        gray = np.array(image.convert("L"))
+        blurred = cv2.GaussianBlur(gray, (3, 3), 0)
+        _, thresh = cv2.threshold(
+            blurred, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU
+        )
+
+        contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        boxes = []
+        for contour in contours:
+            area = cv2.contourArea(contour)
+            if area < 80:
+                continue
+            x, y, w, h = cv2.boundingRect(contour)
+            if w < 8 or h < 8:
+                continue
+            boxes.append((x, y, w, h))
+
+        if not boxes:
+            return image
+
+        x1 = min(b[0] for b in boxes)
+        y1 = min(b[1] for b in boxes)
+        x2 = max(b[0] + b[2] for b in boxes)
+        y2 = max(b[1] + b[3] for b in boxes)
+
+        pad = 24
+        img_w, img_h = image.size
+        left = max(0, x1 - pad)
+        top = max(0, y1 - pad)
+        right = min(img_w, x2 + pad)
+        bottom = min(img_h, y2 + pad)
+
+        if right - left < 30 or bottom - top < 20:
+            return image
+
+        return image.crop((left, top, right, bottom))
+    except Exception as e:
+        logger.warning("Text region crop skipped: %s", e)
         return image
 
 
@@ -153,15 +199,24 @@ def extract_text_from_image(image_bytes: bytes) -> str:
         if image.mode not in ("RGB", "L"):
             image = image.convert("RGB")
 
-        # Preprocess image for better OCR accuracy
-        image = _preprocess_image(image)
+        original_image = image.copy()
+        processed_image = _preprocess_image(image)
+        cropped_image = _crop_text_region(processed_image)
 
-        # Try Tesseract first (faster, multi-language support)
-        text = _extract_with_tesseract(image)
+        # Try Tesseract on processed image, then on original image.
+        text = _extract_with_tesseract(processed_image)
+        if not text:
+            text = _extract_with_tesseract(cropped_image)
+        if not text:
+            text = _extract_with_tesseract(original_image)
         
-        # If Tesseract yields nothing, fallback to PaddleOCR
+        # If Tesseract yields nothing, fallback to PaddleOCR on processed then original image.
         if not text:
             logger.info("Tesseract failed, attempting PaddleOCR fallback...")
+            text = _extract_with_paddle(_pil_to_jpg_bytes(processed_image))
+        if not text:
+            text = _extract_with_paddle(_pil_to_jpg_bytes(cropped_image))
+        if not text:
             text = _extract_with_paddle(image_bytes)
 
         logger.info("Final OCR result: %d characters extracted", len(text))
