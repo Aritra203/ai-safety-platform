@@ -1,6 +1,6 @@
 """
 Minimal FastAPI app for Render deployment.
-Routes load asynchronously in background to avoid startup timeouts.
+Routes loaded eagerly (fast), models loaded lazily (on first request).
 """
 
 import asyncio
@@ -22,16 +22,14 @@ from backend.config.database import connect_db, disconnect_db, is_db_connected
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Route routers (loaded async)
-_routers_loaded = False
+# Flag for status endpoints
+_db_connected = False
 
 
-async def _load_routes_startup(app: FastAPI):
-    """Load routes asynchronously after app is running"""
-    global _routers_loaded
-    
+def _load_routes(app: FastAPI):
+    """Load routes synchronously (routes are fast, models load on first call)"""
     try:
-        logger.info("⏳ Loading ML routes in background...")
+        logger.info("📍 Loading routes...")
         
         from backend.routes.analysis import router as analysis_router
         from backend.routes.fir import router as fir_router
@@ -41,29 +39,42 @@ async def _load_routes_startup(app: FastAPI):
         app.include_router(fir_router, tags=["FIR"])
         app.include_router(analytics_router, tags=["Analytics"])
         
-        _routers_loaded = True
-        logger.info("✅ ML routes loaded successfully")
+        logger.info("✅ Routes loaded successfully")
+        return True
         
     except Exception as e:
-        logger.error(f"❌ Failed to load ML routes: {e}", exc_info=True)
-        _routers_loaded = False
+        logger.error(f"❌ Failed to load routes: {e}", exc_info=True)
+        return False
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Minimal lifespan - startup is instant"""
+    """Minimal lifespan for fast startup"""
     logger.info("🚀 SafeGuard AI starting...")
     
-    # Connect to DB in background
-    asyncio.create_task(connect_db())
+    # Load routes synchronously (fast - only imports, no model loading)
+    _load_routes(app)
     
-    # Load routes in background
-    asyncio.create_task(_load_routes_startup(app))
+    # Connect DB in background (non-blocking)
+    asyncio.create_task(_connect_db_bg())
     
     logger.info("✅ Startup complete - listening for requests")
     yield
     logger.info("🛑 Shutting down...")
     await disconnect_db()
+
+
+async def _connect_db_bg():
+    """Connect to DB in background"""
+    global _db_connected
+    try:
+        await asyncio.wait_for(connect_db(), timeout=5)
+        _db_connected = True
+        logger.info("✅ Database connected")
+    except asyncio.TimeoutError:
+        logger.warning("⚠️  Database connection timeout (will retry on first request)")
+    except Exception as e:
+        logger.error(f"❌ Database connection failed: {e}")
 
 
 app = FastAPI(
@@ -92,7 +103,6 @@ async def root():
         "service": "SafeGuard AI",
         "status": "online",
         "version": "3.1.0",
-        "routes_ready": _routers_loaded,
     }
 
 
@@ -102,8 +112,7 @@ async def health():
     return {
         "status": "ok",
         "service": "SafeGuard AI",
-        "database": "connected" if is_db_connected() else "connecting",
-        "routes_ready": _routers_loaded,
+        "database": "connected" if _db_connected else "connecting",
     }
 
 
@@ -113,8 +122,6 @@ async def status():
     return {
         "app": "SafeGuard AI",
         "version": "3.1.0",
-        "port": "listening",
-        "database": "connected" if is_db_connected() else "connecting",
-        "ml_routes": _routers_loaded,
-        "models": "loading in background" if not _routers_loaded else "ready",
+        "database": "connected" if _db_connected else "connecting",
+        "routes": "ready",
     }
