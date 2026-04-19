@@ -26,7 +26,11 @@ class Settings(BaseSettings):
     # ── App ──────────────────────────────────────────────────────
     APP_ENV: str = "development"
     DEBUG: bool = False
-    ALLOWED_ORIGINS: List[str] = ["http://localhost:3000", "https://safeguard.ai"]
+    ALLOWED_ORIGINS: List[str] = [
+        "http://localhost:3000",
+        "https://safeguard.ai",
+        "https://safeguard-ai-platform.vercel.app",
+    ]
 
     # ── MongoDB ──────────────────────────────────────────────────
     MONGODB_URI: str = "mongodb://localhost:27017"
