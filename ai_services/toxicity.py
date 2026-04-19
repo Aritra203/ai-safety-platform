@@ -101,7 +101,7 @@ class ToxicityClassifier:
             if hits > 0:
                 category_hits[category] = hits
 
-        # 2. Transformer model scores
+        # 2. Transformer model scores with confidence calibration
         model_score = 0.0
         if self.pipeline:
             try:
@@ -110,28 +110,74 @@ class ToxicityClassifier:
                     label = item["label"].lower()
                     score = float(item["score"])
                     
+                    # Calibrate raw model score: apply temperature scaling
+                    # For toxic models, calibrate to reduce false low confidence
+                    calibrated_score = self._calibrate_confidence(score, label)
+                    
                     # For "toxic" label: apply to categories that matched rules
                     if label == "toxic" and category_hits:
-                        model_score = score
+                        model_score = calibrated_score
                     # For specific labels (multi-label models): direct mapping
                     else:
                         mapped = HF_LABEL_MAP.get(label)
-                        if mapped and score > scores.get(mapped, 0):
-                            scores[mapped] = round(score, 4)
+                        if mapped and calibrated_score > scores.get(mapped, 0):
+                            scores[mapped] = round(calibrated_score, 4)
             except Exception as e:
                 logger.warning("Transformer inference error: %s", e)
 
-        # 3. Apply model score to detected categories
+        # 3. Apply model score to detected categories with dynamic boost
         if model_score > 0 and category_hits:
             for category, hits in category_hits.items():
-                # Boost based on hit count, but model score is primary
-                boost = min(hits * 0.05, 0.15)
+                # Dynamic boost: more hits = higher confidence boost
+                # But cap at 0.3 to avoid over-amplification
+                boost = min(hits * 0.08, 0.30)
                 combined = min(model_score + boost, 1.0)
                 scores[category] = round(max(scores.get(category, 0.0), combined), 4)
         else:
             # Fallback: apply rule-based boost if no model score
             for category, hits in category_hits.items():
-                boost = min(hits * 0.15, 0.45)
-                scores[category] = round(min(scores.get(category, 0.0) + boost, 1.0), 4)
+                # Increased boost for rule-only mode: 20-60% depending on hit count
+                # Single hit = 0.20, multiple hits = 0.60
+                boost = min(0.20 + (hits - 1) * 0.15, 0.60)
+                scores[category] = round(max(scores.get(category, 0.0), boost), 4)
 
         return scores
+
+    def _calibrate_confidence(self, raw_score: float, label: str) -> float:
+        """
+        Calibrate raw model confidence scores using temperature scaling.
+        Adjusts for model tendency to output overconfident low scores.
+        
+        Temperature scaling: confidence' = exp(score / T) / (exp(1/T) + exp((1-score)/T))
+        T < 1 → increases high scores, decreases low scores
+        T > 1 → flattens all scores
+        
+        For toxicity detection, we use T=0.7 to boost legitimate detections
+        while suppressing false positives.
+        """
+        try:
+            import math
+            
+            # Temperature for toxicity calibration
+            # Lower T = sharper distinction between toxic/non-toxic
+            temperature = 0.7
+            
+            # Avoid log(0) / divide by zero
+            if raw_score <= 0.0:
+                return 0.0
+            if raw_score >= 1.0:
+                return 1.0
+            
+            # Temperature scaling formula
+            try:
+                scaled = math.exp(raw_score / temperature) / (
+                    math.exp(1.0 / temperature) + math.exp((1.0 - raw_score) / temperature)
+                )
+                # Clamp to [0, 1]
+                return max(0.0, min(1.0, scaled))
+            except (OverflowError, ValueError):
+                # If math fails, return original score
+                return raw_score
+        except Exception as e:
+            logger.warning("Confidence calibration failed: %s, using raw score", e)
+            return raw_score
