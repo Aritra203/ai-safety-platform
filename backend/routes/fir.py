@@ -5,7 +5,7 @@ FIR routes: /generate-fir, /finalize-fir, /download-fir/{fir_id}
 import logging
 import os
 from fastapi import APIRouter, HTTPException, Depends
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 
 from backend.models.schemas import (
     GenerateFIRRequest,
@@ -80,18 +80,26 @@ async def download_fir(
     Falls back to local file if Cloudinary URL unavailable.
     """
     try:
-        pdf_path = await service.get_fir_pdf_path(fir_id)
-        if not os.path.exists(pdf_path):
-            raise HTTPException(status_code=404, detail="FIR PDF not found")
+        pdf_path, pdf_url = await service.get_fir_download_targets(fir_id)
 
-        return FileResponse(
-            path=pdf_path,
-            media_type="application/pdf",
-            filename=f"FIR_{fir_id}.pdf",
-            headers={"Content-Disposition": f'attachment; filename="FIR_{fir_id}.pdf"'},
-        )
+        # Prefer local file when present.
+        if pdf_path and os.path.exists(pdf_path):
+            return FileResponse(
+                path=pdf_path,
+                media_type="application/pdf",
+                filename=f"FIR_{fir_id}.pdf",
+                headers={"Content-Disposition": f'attachment; filename="FIR_{fir_id}.pdf"'},
+            )
+
+        # Render instances are ephemeral; use durable cloud URL fallback.
+        if pdf_url:
+            return RedirectResponse(url=pdf_url, status_code=307)
+
+        raise HTTPException(status_code=404, detail="FIR PDF not found")
     except HTTPException:
         raise
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         logger.exception("FIR download failed")
         raise HTTPException(status_code=500, detail=str(e))

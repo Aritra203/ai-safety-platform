@@ -112,6 +112,19 @@ class FIRService:
             raise ValueError(f"PDF for FIR {fir_id} not ready")
         return record["pdf_path"]
 
+    async def get_fir_download_targets(self, fir_id: str) -> tuple[str | None, str | None]:
+        """Return local PDF path and cloud URL for download fallback handling."""
+        record = await self.db.fir_reports.find_one({"fir_id": fir_id})
+        if not record:
+            raise ValueError(f"FIR {fir_id} not found")
+
+        pdf_path = record.get("pdf_path")
+        pdf_url = record.get("pdf_url")
+        if not pdf_path and not pdf_url:
+            raise ValueError(f"PDF for FIR {fir_id} not ready")
+
+        return pdf_path, pdf_url
+
     # ── Get FIR history ──────────────────────────────────────────
     async def get_fir_history(self, limit: int = 50, skip: int = 0):
         """Fetch FIR history sorted by creation date (newest first)"""
