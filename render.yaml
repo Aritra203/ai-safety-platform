@@ -4,4 +4,4 @@ services:
     runtime: python
     runtimeVersion: 3.12.5
     buildCommand: pip install --no-cache-dir -r requirements.txt
-    startCommand: python wsgi.py
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
