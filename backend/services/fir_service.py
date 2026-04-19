@@ -128,28 +128,42 @@ class FIRService:
     # ── Get FIR history ──────────────────────────────────────────
     async def get_fir_history(self, limit: int = 50, skip: int = 0):
         """Fetch FIR history sorted by creation date (newest first)"""
-        firs = await self.db.fir_reports.find(
-            {},
-            sort=[("created_at", -1)],
-            skip=skip,
-            limit=limit,
-        ).to_list(length=limit)
+        limit = max(1, min(limit, 100))
+        skip = max(0, skip)
+
+        cursor = self.db.fir_reports.find({}).sort("created_at", -1).skip(skip).limit(limit)
+        firs = await cursor.to_list(length=limit)
         
         total = await self.db.fir_reports.count_documents({})
+
+        def _to_iso(value):
+            if isinstance(value, datetime):
+                return value.isoformat()
+            if value is None:
+                return None
+            return str(value)
         
         # Convert to response format
         history_items = []
         for fir in firs:
+            created_at = _to_iso(fir.get("created_at"))
+            finalized_at = _to_iso(fir.get("finalized_at"))
+            incident_date = fir.get("incident_date")
+            if isinstance(incident_date, datetime):
+                incident_date = incident_date.date().isoformat()
+            elif incident_date is None:
+                incident_date = "—"
+
             history_items.append({
-                "fir_id": fir.get("fir_id"),
-                "status": fir.get("status", "draft"),
-                "complainant_name": fir.get("complainant_name", "—"),
-                "accused_name": fir.get("accused_name"),
-                "incident_date": fir.get("incident_date", "—"),
-                "incident_location": fir.get("incident_location"),
-                "created_at": fir.get("created_at"),
-                "finalized_at": fir.get("finalized_at"),
-                "pdf_url": fir.get("pdf_url"),
+                "fir_id": str(fir.get("fir_id") or ""),
+                "status": str(fir.get("status", "draft")),
+                "complainant_name": str(fir.get("complainant_name") or "—"),
+                "accused_name": str(fir.get("accused_name")) if fir.get("accused_name") else None,
+                "incident_date": str(incident_date),
+                "incident_location": str(fir.get("incident_location")) if fir.get("incident_location") else None,
+                "created_at": created_at or datetime.utcnow().isoformat(),
+                "finalized_at": finalized_at,
+                "pdf_url": str(fir.get("pdf_url")) if fir.get("pdf_url") else None,
             })
         
         return {"firs": history_items, "total": total}

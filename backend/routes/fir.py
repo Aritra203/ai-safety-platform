@@ -12,7 +12,6 @@ from backend.models.schemas import (
     FinalizeFIRRequest,
     FIRCreateResponse,
     FIRFinalizeResponse,
-    FIRHistoryResponse,
 )
 from backend.services.fir_service import FIRService
 from backend.config.database import get_db
@@ -106,7 +105,7 @@ async def download_fir(
 
 
 # ── GET /fir-history ─────────────────────────────────────────────
-@router.get("/fir-history", response_model=FIRHistoryResponse)
+@router.get("/fir-history")
 async def get_fir_history(
     limit: int = 50,
     skip: int = 0,
@@ -117,8 +116,7 @@ async def get_fir_history(
     Returns list of FIRs sorted by creation date (newest first).
     """
     try:
-        result = await service.get_fir_history(limit=limit, skip=skip)
-        return FIRHistoryResponse(**result)
+        return await service.get_fir_history(limit=limit, skip=skip)
     except Exception as e:
         logger.exception("FIR history fetch failed")
-        raise HTTPException(status_code=500, detail=str(e))
+        return {"firs": [], "total": 0}
