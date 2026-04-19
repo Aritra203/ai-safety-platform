@@ -21,24 +21,11 @@ from fastapi.middleware.gzip import GZipMiddleware
 from backend.config.settings import settings
 from backend.config.database import connect_db, disconnect_db, is_db_connected
 
-# Import routes with error handling
-try:
-    from backend.routes.analysis import router as analysis_router
-except ImportError as e:
-    logger.warning(f"⚠️ Analysis router import failed: {e}. Analysis endpoints disabled.")
-    analysis_router = None
-
-try:
-    from backend.routes.fir import router as fir_router
-except ImportError as e:
-    logger.warning(f"⚠️ FIR router import failed: {e}. FIR endpoints disabled.")
-    fir_router = None
-
-try:
-    from backend.routes.analytics import router as analytics_router
-except ImportError as e:
-    logger.warning(f"⚠️ Analytics router import failed: {e}. Analytics endpoints disabled.")
-    analytics_router = None
+# Import routes lazily (routes are imported only when first request comes in)
+# This avoids loading heavy ML models during startup
+analysis_router = None
+fir_router = None
+analytics_router = None
 
 # ── Logging ──────────────────────────────────────────────────────
 logging.basicConfig(
@@ -88,15 +75,6 @@ app.add_middleware(
 )
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
-# ── Routers ──────────────────────────────────────────────────────
-if analysis_router:
-    app.include_router(analysis_router, tags=["Analysis"])
-if fir_router:
-    app.include_router(fir_router, tags=["FIR"])
-if analytics_router:
-    app.include_router(analytics_router, tags=["Analytics"])
-
-
 # ── Health check ─────────────────────────────────────────────────
 @app.get("/health", tags=["System"])
 async def health():
@@ -118,3 +96,47 @@ async def root():
         "version": "3.1.0",
         "docs": "/docs",
     }
+
+
+# ── Lazy route loading on first request ───────────────────────────
+async def _load_routes_once():
+    """Load routes lazily on first request (don't block startup)"""
+    global analysis_router, fir_router, analytics_router
+    
+    if analysis_router is None:
+        logger.info("⏳ Loading analysis routes...")
+        try:
+            from backend.routes.analysis import router as analysis_router_import
+            analysis_router = analysis_router_import
+            app.include_router(analysis_router, tags=["Analysis"])
+            logger.info("✅ Analysis routes loaded")
+        except Exception as e:
+            logger.error(f"❌ Failed to load analysis routes: {e}")
+    
+    if fir_router is None:
+        logger.info("⏳ Loading FIR routes...")
+        try:
+            from backend.routes.fir import router as fir_router_import
+            fir_router = fir_router_import
+            app.include_router(fir_router, tags=["FIR"])
+            logger.info("✅ FIR routes loaded")
+        except Exception as e:
+            logger.error(f"❌ Failed to load FIR routes: {e}")
+    
+    if analytics_router is None:
+        logger.info("⏳ Loading analytics routes...")
+        try:
+            from backend.routes.analytics import router as analytics_router_import
+            analytics_router = analytics_router_import
+            app.include_router(analytics_router, tags=["Analytics"])
+            logger.info("✅ Analytics routes loaded")
+        except Exception as e:
+            logger.error(f"❌ Failed to load analytics routes: {e}")
+
+
+# Add startup event that loads routes in background
+@app.on_event("startup")
+async def load_routes_background():
+    """Load routes in background after app is running"""
+    import asyncio
+    asyncio.create_task(_load_routes_once())
