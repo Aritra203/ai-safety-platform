@@ -5,6 +5,7 @@ uploads to Cloudinary, and persists metadata.
 
 import logging
 import os
+import re
 import uuid
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -66,13 +67,15 @@ class FIRService:
 
     # ── Generate FIR PDF ──────────────────────────────────────────
     async def generate_fir_pdf(self, data: FinalizeFIRRequest) -> str:
-        fir_record = await self.db.fir_reports.find_one({"fir_id": data.fir_id})
+        fir_record = await self._find_fir_record(data.fir_id)
         if not fir_record:
             raise ValueError(f"FIR {data.fir_id} not found")
 
+        canonical_fir_id = fir_record.get("fir_id", data.fir_id)
+
         analysis = await self.db.analyses.find_one({"id": data.analysis_id})
 
-        pdf_path = self.output_dir / f"{data.fir_id}.pdf"
+        pdf_path = self.output_dir / f"{canonical_fir_id}.pdf"
         self._build_pdf(pdf_path, data, analysis)
 
         # Upload to Cloudinary
@@ -81,12 +84,12 @@ class FIRService:
             str(pdf_path),
             folder="fir_reports",
             resource_type="raw",
-            public_id=data.fir_id,
+            public_id=canonical_fir_id,
         )
 
         # Update DB record
         await self.db.fir_reports.update_one(
-            {"fir_id": data.fir_id},
+            {"fir_id": canonical_fir_id},
             {"$set": {
                 "status": "finalized",
                 "pdf_path": str(pdf_path),
@@ -99,31 +102,88 @@ class FIRService:
                 "incident_date": data.incident_date,
                 "incident_time": data.incident_time,
                 "incident_location": data.incident_location,
+                "additional_info": data.additional_info,
+                "legal_sections": data.legal_sections,
+                "evidence_urls": data.evidence_urls,
                 "finalized_at": datetime.utcnow(),
             }},
         )
-        logger.info("FIR finalized: %s → %s", data.fir_id, pdf_url)
+        logger.info("FIR finalized: %s → %s", canonical_fir_id, pdf_url)
         return pdf_url
 
     # ── Get PDF path ──────────────────────────────────────────────
     async def get_fir_pdf_path(self, fir_id: str) -> str:
-        record = await self.db.fir_reports.find_one({"fir_id": fir_id})
+        record = await self._find_fir_record(fir_id)
         if not record or not record.get("pdf_path"):
             raise ValueError(f"PDF for FIR {fir_id} not ready")
         return record["pdf_path"]
 
     async def get_fir_download_targets(self, fir_id: str) -> tuple[str | None, str | None]:
         """Return local PDF path and cloud URL for download fallback handling."""
-        record = await self.db.fir_reports.find_one({"fir_id": fir_id})
+        record = await self._find_fir_record(fir_id)
         if not record:
             raise ValueError(f"FIR {fir_id} not found")
 
         pdf_path = record.get("pdf_path")
         pdf_url = record.get("pdf_url")
+
+        # Recover legacy finalized FIRs that are missing PDF pointers.
+        if (not pdf_path and not pdf_url) and record.get("status") == "finalized":
+            logger.warning("Missing PDF references for %s; attempting legacy recovery", record.get("fir_id"))
+            recovered_url = await self._recover_legacy_pdf(record)
+            if recovered_url:
+                refreshed = await self._find_fir_record(record.get("fir_id", fir_id))
+                if refreshed:
+                    pdf_path = refreshed.get("pdf_path")
+                    pdf_url = refreshed.get("pdf_url")
+
         if not pdf_path and not pdf_url:
             raise ValueError(f"PDF for FIR {fir_id} not ready")
 
         return pdf_path, pdf_url
+
+    async def _find_fir_record(self, fir_id: str) -> dict | None:
+        """Find FIR record by exact id, then case-insensitive fallback."""
+        record = await self.db.fir_reports.find_one({"fir_id": fir_id})
+        if record:
+            return record
+
+        return await self.db.fir_reports.find_one(
+            {"fir_id": {"$regex": f"^{re.escape(fir_id)}$", "$options": "i"}}
+        )
+
+    async def _recover_legacy_pdf(self, record: dict) -> str:
+        """
+        Rebuild PDF for older finalized records that lost pdf_path/pdf_url metadata.
+        Returns recovered cloud URL or empty string on failure.
+        """
+        try:
+            analysis_id = record.get("analysis_id")
+            if not analysis_id:
+                logger.warning("Legacy FIR recovery skipped: missing analysis_id for %s", record.get("fir_id"))
+                return ""
+
+            fallback_incident_date = datetime.utcnow().strftime("%Y-%m-%d")
+            payload = FinalizeFIRRequest(
+                fir_id=record.get("fir_id", ""),
+                analysis_id=analysis_id,
+                complainant_name=record.get("complainant_name") or "Unknown",
+                complainant_contact=record.get("complainant_contact") or "Not Provided",
+                complainant_address=record.get("complainant_address") or "",
+                accused_name=record.get("accused_name") or "",
+                accused_details=record.get("accused_details") or "",
+                incident_date=record.get("incident_date") or fallback_incident_date,
+                incident_time=record.get("incident_time") or "",
+                incident_location=record.get("incident_location") or "",
+                additional_info=record.get("additional_info") or "",
+                legal_sections=record.get("legal_sections") or [],
+                evidence_urls=record.get("evidence_urls") or [],
+            )
+
+            return await self.generate_fir_pdf(payload)
+        except Exception as e:
+            logger.warning("Legacy FIR recovery failed for %s: %s", record.get("fir_id"), e)
+            return ""
 
     # ── Get FIR history ──────────────────────────────────────────
     async def get_fir_history(self, limit: int = 50, skip: int = 0):

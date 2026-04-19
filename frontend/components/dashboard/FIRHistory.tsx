@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Download, FileText, Calendar, User, AlertCircle, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
-import { getFIRHistory } from "@/services/api";
+import { downloadFIR as triggerFIRDownload, getFIRHistory } from "@/services/api";
 
 interface FIRItem {
   fir_id: string;
@@ -45,18 +45,7 @@ export default function FIRHistory() {
 
   const downloadFIR = async (firId: string) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/download-fir/${firId}`);
-      if (!response.ok) throw new Error("Download failed");
-      
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `FIR_${firId}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      triggerFIRDownload(firId);
       toast.success("FIR downloaded successfully");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to download FIR";
