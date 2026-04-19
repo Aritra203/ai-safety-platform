@@ -76,9 +76,11 @@ class AnalysisService:
 
     # ── Text analysis ─────────────────────────────────────────────
     async def analyze_text(self, text: str) -> AnalysisResponse:
-        return await asyncio.get_event_loop().run_in_executor(
+        result = await asyncio.get_event_loop().run_in_executor(
             None, self._sync_analyze_text, text, None
         )
+        asyncio.create_task(self._persist_async(result))
+        return result
 
     # ── Image analysis ────────────────────────────────────────────
     async def analyze_image(self, image_bytes: bytes, image_url: str) -> AnalysisResponse:
@@ -93,13 +95,16 @@ class AnalysisService:
             None, self._sync_analyze_text, extracted_text, image_url
         )
         result.image_url = image_url
+        asyncio.create_task(self._persist_async(result))
         return result
 
     # ── Conversation context analysis ─────────────────────────────
     async def analyze_context(self, messages: List[ConversationMessage]) -> AnalysisResponse:
-        return await asyncio.get_event_loop().run_in_executor(
+        result = await asyncio.get_event_loop().run_in_executor(
             None, self._sync_analyze_context, messages
         )
+        asyncio.create_task(self._persist_async(result))
+        return result
 
     # ── Internal sync pipeline ────────────────────────────────────
     def _sync_analyze_text(self, text: str, image_url: str | None) -> AnalysisResponse:
@@ -151,9 +156,6 @@ class AnalysisService:
             language_detected=lang,
             image_url=image_url,
         )
-
-        # Persist (fire and forget in sync context — stored after return)
-        self._persist_sync(result)
         return result
 
     def _sync_analyze_context(self, messages: List[ConversationMessage]) -> AnalysisResponse:
@@ -193,18 +195,12 @@ class AnalysisService:
             timestamp=datetime.utcnow(),
             language_detected=lang,
         )
-        self._persist_sync(result)
         return result
 
-    def _persist_sync(self, result: AnalysisResponse) -> None:
-        """Best-effort MongoDB persistence (non-blocking)."""
-        import asyncio
+    async def _persist_async(self, result: AnalysisResponse) -> None:
+        """Best-effort MongoDB persistence on the active event loop."""
         try:
-            loop = asyncio.new_event_loop()
-            loop.run_until_complete(
-                self.db.analyses.insert_one(result.model_dump())
-            )
-            loop.close()
+            await self.db.analyses.insert_one(result.model_dump())
         except Exception as e:
             logger.warning("Persistence skipped: %s", e)
 
