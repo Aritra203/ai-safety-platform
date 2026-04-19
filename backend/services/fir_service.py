@@ -43,7 +43,18 @@ class FIRService:
     def __init__(self, db):
         self.db = db
         self.output_dir = Path(settings.FIR_OUTPUT_DIR)
-        self.output_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            self.output_dir.mkdir(parents=True, exist_ok=True)
+        except OSError as e:
+            fallback_dir = Path("/tmp/fir_pdfs")
+            fallback_dir.mkdir(parents=True, exist_ok=True)
+            logger.warning(
+                "FIR_OUTPUT_DIR '%s' unavailable (%s). Falling back to '%s'.",
+                self.output_dir,
+                e,
+                fallback_dir,
+            )
+            self.output_dir = fallback_dir
 
     # ── Create FIR record ─────────────────────────────────────────
     async def create_fir_record(self, analysis_id: str) -> str:
