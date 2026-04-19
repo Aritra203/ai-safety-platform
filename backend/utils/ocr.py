@@ -1,5 +1,5 @@
 """
-OCR utility — extracts text from image bytes using Tesseract + PaddleOCR fallback.
+OCR utility — extracts text from image bytes using Tesseract + PaddleOCR + EasyOCR fallback.
 Preprocesses images for better handwriting detection.
 Falls back to empty string on failure.
 """
@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 # ── Lazy-load PaddleOCR (expensive, only on first use) ───────────────
 _paddle_ocr = None
+_easyocr_reader = None
 
 
 def _get_paddle_ocr():
@@ -19,12 +20,37 @@ def _get_paddle_ocr():
     if _paddle_ocr is None:
         try:
             from paddleocr import PaddleOCR
-            _paddle_ocr = PaddleOCR(use_angle_cls=True, lang="en", show_log=False)
+            try:
+                _paddle_ocr = PaddleOCR(
+                    lang="en",
+                    show_log=False,
+                    use_doc_orientation_classify=False,
+                    use_doc_unwarping=False,
+                    use_textline_orientation=False,
+                )
+            except TypeError:
+                # Backward-compatible init path for older PaddleOCR APIs.
+                _paddle_ocr = PaddleOCR(use_angle_cls=True, lang="en", show_log=False)
             logger.info("✅ PaddleOCR initialized")
         except Exception as e:
             logger.warning("PaddleOCR unavailable (%s)", e)
             _paddle_ocr = False  # Mark as failed to avoid retry
     return _paddle_ocr if _paddle_ocr is not False else None
+
+
+def _get_easyocr_reader():
+    """Lazy-load EasyOCR reader to avoid startup overhead."""
+    global _easyocr_reader
+    if _easyocr_reader is None:
+        try:
+            import easyocr
+
+            _easyocr_reader = easyocr.Reader(["en"], gpu=False, verbose=False)
+            logger.info("✅ EasyOCR initialized")
+        except Exception as e:
+            logger.warning("EasyOCR unavailable (%s)", e)
+            _easyocr_reader = False
+    return _easyocr_reader if _easyocr_reader is not False else None
 
 
 def _preprocess_image(image):
@@ -114,22 +140,49 @@ def _extract_with_tesseract(image: "Image") -> str:
     Extract text using Tesseract OCR with enhanced PSM for handwriting.
     """
     try:
+        from PIL import ImageOps
         import pytesseract
 
-        # PSM 11: Sparse text with OSD (best for handwriting)
-        # PSM 6: Assume single block of text (fallback)
-        for psm in ["--psm 11", "--psm 6 --oem 3"]:
-            try:
-                text = pytesseract.image_to_string(
-                    image,
-                    lang="eng+hin+ben",
-                    config=f"{psm} --dpi 300",
-                )
-                if text.strip():
-                    logger.info("Tesseract extracted %d characters with %s", len(text.strip()), psm)
-                    return text.strip()
-            except pytesseract.pytesseract.TesseractError:
-                continue
+        # Try variants tuned for single-line handwriting and noisy backgrounds.
+        variants = [
+            ("base", image),
+            ("autocontrast", ImageOps.autocontrast(image.convert("L"))),
+            ("invert", ImageOps.invert(ImageOps.autocontrast(image.convert("L")))),
+        ]
+
+        configs = [
+            # psm7/13 are strong for single-line signatures/usernames.
+            "--psm 7 --oem 3 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._- ",
+            "--psm 13 --oem 3 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._- ",
+            "--psm 11 --oem 3",
+            "--psm 6 --oem 3",
+        ]
+
+        best_text = ""
+        for variant_name, variant_image in variants:
+            for cfg in configs:
+                try:
+                    text = pytesseract.image_to_string(
+                        variant_image,
+                        lang="eng",
+                        config=f"{cfg} --dpi 300",
+                    ).strip()
+                    if len(text) > len(best_text):
+                        best_text = text
+                    if len(text) >= 4 and any(ch.isalpha() for ch in text):
+                        logger.info(
+                            "Tesseract extracted %d chars using %s | %s",
+                            len(text),
+                            variant_name,
+                            cfg,
+                        )
+                        return text
+                except pytesseract.pytesseract.TesseractError:
+                    continue
+
+        if best_text:
+            logger.info("Tesseract fallback extracted %d chars", len(best_text))
+            return best_text
         
         logger.warning("Tesseract extraction yielded no text")
         return ""
@@ -183,9 +236,34 @@ def _extract_with_paddle(image_bytes: bytes) -> str:
         return ""
 
 
+def _extract_with_easyocr(image_bytes: bytes) -> str:
+    """Extract text using EasyOCR as a final fallback."""
+    try:
+        import cv2
+        import numpy as np
+
+        reader = _get_easyocr_reader()
+        if reader is None:
+            return ""
+
+        image_array = np.frombuffer(image_bytes, dtype=np.uint8)
+        image = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
+        if image is None:
+            return ""
+
+        pieces = reader.readtext(image, detail=0, paragraph=True)
+        text = " ".join(t.strip() for t in pieces if isinstance(t, str) and t.strip()).strip()
+        if text:
+            logger.info("EasyOCR extracted %d characters", len(text))
+        return text
+    except Exception as e:
+        logger.warning("EasyOCR extraction failed: %s", e)
+        return ""
+
+
 def extract_text_from_image(image_bytes: bytes) -> str:
     """
-    Extract text from image bytes using Tesseract + PaddleOCR fallback.
+    Extract text from image bytes using Tesseract + PaddleOCR + EasyOCR fallback.
     Preprocesses image for improved handwriting detection.
     Supports English, Hindi (Devanagari), and Bengali.
     Returns extracted text or empty string on failure.
@@ -218,6 +296,13 @@ def extract_text_from_image(image_bytes: bytes) -> str:
             text = _extract_with_paddle(_pil_to_jpg_bytes(cropped_image))
         if not text:
             text = _extract_with_paddle(image_bytes)
+
+        # Final fallback for handwritten Latin text.
+        if not text:
+            logger.info("PaddleOCR failed, attempting EasyOCR fallback...")
+            text = _extract_with_easyocr(_pil_to_jpg_bytes(processed_image))
+        if not text:
+            text = _extract_with_easyocr(image_bytes)
 
         logger.info("Final OCR result: %d characters extracted", len(text))
         return text
