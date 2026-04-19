@@ -20,9 +20,9 @@ from reportlab.platypus import (
 )
 from reportlab.platypus.flowables import HRFlowable
 
-from config.settings import settings
-from models.schemas import FinalizeFIRRequest
-from services.cloudinary_service import CloudinaryService
+from backend.config.settings import settings
+from backend.models.schemas import FinalizeFIRRequest
+from backend.services.cloudinary_service import CloudinaryService
 
 logger = logging.getLogger(__name__)
 

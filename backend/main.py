@@ -17,11 +17,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 
-from config.settings import settings
-from config.database import connect_db, disconnect_db, is_db_connected
-from routes.analysis import router as analysis_router
-from routes.fir import router as fir_router
-from routes.analytics import router as analytics_router
+from backend.config.settings import settings
+from backend.config.database import connect_db, disconnect_db, is_db_connected
+from backend.routes.analysis import router as analysis_router
+from backend.routes.fir import router as fir_router
+from backend.routes.analytics import router as analytics_router
 
 # ── Logging ──────────────────────────────────────────────────────
 logging.basicConfig(

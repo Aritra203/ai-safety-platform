@@ -4,7 +4,7 @@ to applicable Indian laws (IT Act 2000, IPC, POCSO, etc.)
 """
 
 from typing import List
-from models.schemas import LegalMapping, RiskLevel
+from backend.models.schemas import LegalMapping, RiskLevel
 
 
 # ── Legal database ────────────────────────────────────────────────

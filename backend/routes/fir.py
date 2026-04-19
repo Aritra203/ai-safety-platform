@@ -7,16 +7,16 @@ import os
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import FileResponse
 
-from models.schemas import (
+from backend.models.schemas import (
     GenerateFIRRequest,
     FinalizeFIRRequest,
     FIRCreateResponse,
     FIRFinalizeResponse,
     FIRHistoryResponse,
 )
-from services.fir_service import FIRService
-from config.database import get_db
-from config.settings import settings
+from backend.services.fir_service import FIRService
+from backend.config.database import get_db
+from backend.config.settings import settings
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
