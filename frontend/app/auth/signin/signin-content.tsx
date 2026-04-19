@@ -28,12 +28,11 @@ export default function SignInContent() {
   const handleGoogleSignIn = async () => {
     setLoading(true);
     try {
-      // Use redirect: true to let NextAuth handle the redirect naturally
+      // NextAuth will handle redirect with redirect: true
       await signIn("google", {
-        redirect: false,
+        redirect: true,
         callbackUrl,
       });
-      // Don't set loading to false here - let the useEffect handle the redirect
     } catch (error) {
       console.error("Sign in failed:", error);
       setLoading(false);
