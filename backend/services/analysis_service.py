@@ -64,7 +64,7 @@ _context_ana: ContextAnalyzer | None = None
 _multilingual: MultilingualProcessor | None = None
 _legal_mapper = LegalMapper()
 _risk_engine = RiskEngine()
-_explainer = ExplainabilityEngine()
+_explainer: ExplainabilityEngine | None = None
 
 
 def _get_toxicity() -> ToxicityClassifier:
@@ -93,6 +93,13 @@ def _get_multilingual() -> MultilingualProcessor:
     if _multilingual is None:
         _multilingual = MultilingualProcessor()
     return _multilingual
+
+
+def _get_explainer() -> ExplainabilityEngine:
+    global _explainer
+    if _explainer is None:
+        _explainer = ExplainabilityEngine()
+    return _explainer
 
 
 class AnalysisService:
@@ -166,6 +173,7 @@ class AnalysisService:
         multilingual = _get_multilingual()
         toxicity_clf = _get_toxicity()
         grooming_det = _get_grooming()
+        explainer = _get_explainer()
 
         # 1. Language detection + normalization
         lang, normalized_text = multilingual.process(text)
@@ -179,12 +187,12 @@ class AnalysisService:
         scores["grooming"] = grooming_score
 
         # 4. Token-level explainability
-        toxic_tokens: List[ToxicToken] = _explainer.highlight_tokens(
+        toxic_tokens: List[ToxicToken] = explainer.highlight_tokens(
             normalized_text, scores
         )
 
         # 5. Highlighted HTML
-        highlighted_html = _explainer.build_highlighted_html(
+        highlighted_html = explainer.build_highlighted_html(
             normalized_text, toxic_tokens
         )
 
@@ -215,6 +223,7 @@ class AnalysisService:
 
     def _sync_analyze_context(self, messages: List[ConversationMessage]) -> AnalysisResponse:
         context_analyzer = _get_context()
+        explainer = _get_explainer()
         # Merge all texts for baseline toxicity
         combined_text = " ".join(m.text for m in messages)
 
@@ -231,8 +240,8 @@ class AnalysisService:
         ctx_scores["grooming"] = grooming_score
 
         lang, _ = _get_multilingual().process(combined_text)
-        toxic_tokens = _explainer.highlight_tokens(combined_text, ctx_scores)
-        highlighted_html = _explainer.build_highlighted_html(combined_text, toxic_tokens)
+        toxic_tokens = explainer.highlight_tokens(combined_text, ctx_scores)
+        highlighted_html = explainer.build_highlighted_html(combined_text, toxic_tokens)
         risk_level, overall_score = _risk_engine.compute(ctx_scores)
         legal_mappings = _legal_mapper.map(ctx_scores, risk_level)
         explanation = _build_explanation(ctx_scores, risk_level, lang, is_context=True)

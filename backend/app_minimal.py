@@ -17,7 +17,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from backend.config.settings import settings
-from backend.config.database import connect_db, disconnect_db, is_db_connected
+from backend.config.database import connect_db, disconnect_db
+from backend.routes.analysis import router as analysis_router
+from backend.routes.fir import router as fir_router
+from backend.routes.analytics import router as analytics_router
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -26,34 +29,10 @@ logger = logging.getLogger(__name__)
 _db_connected = False
 
 
-def _load_routes(app: FastAPI):
-    """Load routes synchronously (routes are fast, models load on first call)"""
-    try:
-        logger.info("📍 Loading routes...")
-        
-        from backend.routes.analysis import router as analysis_router
-        from backend.routes.fir import router as fir_router
-        from backend.routes.analytics import router as analytics_router
-        
-        app.include_router(analysis_router, tags=["Analysis"])
-        app.include_router(fir_router, tags=["FIR"])
-        app.include_router(analytics_router, tags=["Analytics"])
-        
-        logger.info("✅ Routes loaded successfully")
-        return True
-        
-    except Exception as e:
-        logger.error(f"❌ Failed to load routes: {e}", exc_info=True)
-        return False
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Minimal lifespan for fast startup"""
     logger.info("🚀 SafeGuard AI starting...")
-    
-    # Load routes synchronously (fast - only imports, no model loading)
-    _load_routes(app)
     
     # Connect DB in background (non-blocking)
     asyncio.create_task(_connect_db_bg())
@@ -83,6 +62,11 @@ app = FastAPI(
     version="3.1.0",
     lifespan=lifespan,
 )
+
+# Register API routes eagerly to avoid startup event/lifespan race conditions.
+app.include_router(analysis_router, tags=["Analysis"])
+app.include_router(fir_router, tags=["FIR"])
+app.include_router(analytics_router, tags=["Analytics"])
 
 # Middleware
 app.add_middleware(
