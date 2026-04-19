@@ -18,5 +18,10 @@ __pycache__/
 frontend/node_modules/
 frontend/.next/
 
+# ML Model cache (downloaded dynamically from HuggingFace)
+models/
+.cache/
+huggingface/
+
 # Misc
 .DS_Store
