@@ -10,16 +10,47 @@ requests==2.32.3
 python-multipart==0.0.9
 python-dotenv==1.0.1
 cloudinary==1.43.0
+
+# Image Processing & OCR
 pillow==11.0.0
 opencv-python==4.10.0.84
 pytesseract==0.3.10
+easyocr==1.7.2
 paddleocr==3.4.1
 paddlepaddle==3.3.1
-easyocr==1.7.2
+
+# NLP & ML - XLM-RoBERTa Stack (Production)
 transformers==4.41.0
 torch==2.11.0
 numpy==2.3.4
 scikit-learn==1.6.0
 pandas==2.2.3
+
+# Multilingual Support
+langdetect==1.0.9
+regex==2024.11.6
+
+# Explainability & Analysis
+shap==0.44.1
+
+# Performance & Caching
 httpx==0.27.0
+
+# Document Generation (FIR Reports)
 reportlab==4.2.2
+pypdf==4.1.1
+
+# Async & Concurrency
+asyncio==3.4.3
+aiofiles==24.1.0
+
+# Testing & Monitoring
+pytest==7.4.3
+pytest-asyncio==0.23.2
+
+# Logging & Debugging
+structlog==24.1.0
+
+# API Documentation & Validation
+email-validator==2.1.0
+typing-extensions==4.9.0
