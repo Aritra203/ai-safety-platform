@@ -51,33 +51,21 @@ logger = logging.getLogger(__name__)
 # ── Lifespan (startup / shutdown) ────────────────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("🚀 SafeGuard AI starting up...")
-    try:
-        # Connect to MongoDB with timeout
-        try:
-            await asyncio.wait_for(connect_db(), timeout=10.0)
-        except asyncio.TimeoutError:
-            logger.warning("⚠️ MongoDB connection timed out. API will work in degraded mode.")
-        except Exception as e:
-            logger.warning(f"⚠️ MongoDB connection failed: {e}. API will work in degraded mode.")
-        
-        if is_db_connected():
-            logger.info("✅ MongoDB connected")
-        else:
-            logger.warning("⚠️ MongoDB not connected. API is running in degraded mode.")
-        
-        logger.info("✅ Startup complete - API ready for requests")
-    except Exception as e:
-        logger.warning(f"⚠️ Startup warning (non-fatal): {e}")
+    """Minimal startup - return immediately"""
+    logger.info("🚀 SafeGuard AI starting...")
     
+    # Try to connect to DB in background (don't block)
+    import asyncio
+    asyncio.create_task(connect_db())
+    
+    logger.info("✅ Ready (models load on first request)")
     yield
     
+    # Cleanup
     try:
-        logger.info("🛑 SafeGuard AI shutting down...")
         await disconnect_db()
-        logger.info("✅ Cleanup complete")
-    except Exception as e:
-        logger.warning(f"⚠️ Shutdown warning: {e}")
+    except Exception:
+        pass
 
 
 # ── App factory ──────────────────────────────────────────────────

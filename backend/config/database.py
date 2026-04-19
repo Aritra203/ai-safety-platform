@@ -18,24 +18,32 @@ _db_ready = False
 async def connect_db() -> None:
     global _client, db, _db_ready
     if _client is None:
-        _client = AsyncIOMotorClient(
-            settings.MONGODB_URI,
-            serverSelectionTimeoutMS=5000,
-            maxPoolSize=20,
-        )
-    db = _client[settings.MONGODB_DB]
-
-    try:
-        # Verify connection
-        await _client.admin.command("ping")
-        logger.info("MongoDB connected: %s / %s", settings.MONGODB_URI, settings.MONGODB_DB)
-
-        # Ensure indexes
-        await _ensure_indexes()
-        _db_ready = True
-    except Exception as e:
-        _db_ready = False
-        logger.warning("MongoDB unavailable at startup (%s). API will run in degraded mode.", e)
+        try:
+            _client = AsyncIOMotorClient(
+                settings.MONGODB_URI,
+                serverSelectionTimeoutMS=2000,  # Very short timeout
+                maxPoolSize=10,
+                connectTimeoutMS=2000,
+            )
+            db = _client[settings.MONGODB_DB]
+            
+            # Try ping with timeout
+            import asyncio
+            try:
+                await asyncio.wait_for(_client.admin.command("ping"), timeout=2.0)
+                logger.info("✅ MongoDB connected")
+                _db_ready = True
+                # Create indexes in background (don't wait)
+                asyncio.create_task(_ensure_indexes())
+            except asyncio.TimeoutError:
+                logger.info("⚠️ MongoDB ping timeout - will retry on first request")
+                _db_ready = False
+            except Exception as e:
+                logger.info(f"⚠️ MongoDB unavailable: {e}")
+                _db_ready = False
+        except Exception as e:
+            logger.info(f"⚠️ Failed to create MongoDB client: {e}")
+            _db_ready = False
 
 
 async def disconnect_db() -> None:
