@@ -12,7 +12,7 @@ from io import BytesIO
 import cloudinary
 import cloudinary.uploader
 
-from config.settings import settings
+from backend.config.settings import settings
 
 logger = logging.getLogger(__name__)
 

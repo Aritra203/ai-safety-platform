@@ -13,7 +13,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from celery import Celery
-from config.settings import settings
+from backend.config.settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +22,7 @@ celery_app = Celery(
     "safeguard_ai",
     broker=settings.CELERY_BROKER_URL,
     backend=settings.CELERY_RESULT_BACKEND,
-    include=["workers.tasks"],
+    include=["backend.workers.tasks"],
 )
 
 celery_app.conf.update(

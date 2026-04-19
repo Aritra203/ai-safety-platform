@@ -2,9 +2,9 @@
 
 import logging
 from fastapi import APIRouter, Depends
-from models.schemas import AnalyticsResponse
-from services.analytics_service import AnalyticsService
-from config.database import get_db
+from backend.models.schemas import AnalyticsResponse
+from backend.services.analytics_service import AnalyticsService
+from backend.config.database import get_db
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

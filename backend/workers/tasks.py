@@ -5,7 +5,7 @@ Heavy AI processing and FIR PDF generation run here asynchronously.
 
 import logging
 import asyncio
-from workers.celery_app import celery_app
+from backend.workers.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
 
@@ -33,8 +33,8 @@ def analyze_text_async(self, text: str, analysis_id: str):
     Stores result in MongoDB; frontend polls for completion.
     """
     try:
-        from config.database import connect_db, db
-        from services.analysis_service import AnalysisService
+        from backend.config.database import connect_db, db
+        from backend.services.analysis_service import AnalysisService
 
         run_async(connect_db())
         service = AnalysisService(db)
@@ -60,9 +60,9 @@ def generate_fir_async(self, fir_payload: dict):
     Takes a FinalizeFIRRequest-compatible dict.
     """
     try:
-        from config.database import connect_db, db
-        from services.fir_service import FIRService
-        from models.schemas import FinalizeFIRRequest
+        from backend.config.database import connect_db, db
+        from backend.services.fir_service import FIRService
+        from backend.models.schemas import FinalizeFIRRequest
 
         run_async(connect_db())
         service = FIRService(db)
@@ -95,7 +95,7 @@ def batch_image_analysis(self, image_urls: list):
             response = httpx.get(url, timeout=15)
             image_bytes = response.content
 
-            from utils.ocr import extract_text_from_image
+            from backend.utils.ocr import extract_text_from_image
             from ai_services.toxicity import ToxicityClassifier
 
             text = extract_text_from_image(image_bytes)

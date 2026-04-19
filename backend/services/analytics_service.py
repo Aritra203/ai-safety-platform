@@ -1,7 +1,7 @@
 """Analytics service — aggregates stats from MongoDB."""
 import logging
 from datetime import datetime, timedelta
-from models.schemas import AnalyticsResponse
+from backend.models.schemas import AnalyticsResponse
 
 logger = logging.getLogger(__name__)
 

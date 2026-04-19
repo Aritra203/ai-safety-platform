@@ -7,15 +7,15 @@ import logging
 from fastapi import APIRouter, File, UploadFile, HTTPException, Depends
 from fastapi.responses import JSONResponse
 
-from models.schemas import (
+from backend.models.schemas import (
     TextAnalysisRequest,
     ContextAnalysisRequest,
     AnalysisResponse,
 )
-from services.analysis_service import AnalysisService
-from services.cloudinary_service import CloudinaryService
-from config.database import get_db
-from config.settings import settings
+from backend.services.analysis_service import AnalysisService
+from backend.services.cloudinary_service import CloudinaryService
+from backend.config.database import get_db
+from backend.config.settings import settings
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

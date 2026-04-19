@@ -5,6 +5,3 @@ services:
     runtimeVersion: 3.12.5
     buildCommand: pip install --no-cache-dir -r requirements.txt
     startCommand: python wsgi.py
-    envVars:
-      - key: PORT
-        value: "8000"

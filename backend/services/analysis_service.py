@@ -15,7 +15,7 @@ import uuid
 from datetime import datetime
 from typing import List
 
-from models.schemas import (
+from backend.models.schemas import (
     AnalysisResponse,
     CategoryScores,
     ConversationMessage,
@@ -26,9 +26,9 @@ from ai_services.toxicity import ToxicityClassifier
 from ai_services.grooming_detection import GroomingDetector
 from ai_services.context_analysis import ContextAnalyzer
 from ai_services.multilingual_processing import MultilingualProcessor
-from utils.legal_mapper import LegalMapper
-from utils.risk_engine import RiskEngine
-from utils.explainability import ExplainabilityEngine
+from backend.utils.legal_mapper import LegalMapper
+from backend.utils.risk_engine import RiskEngine
+from backend.utils.explainability import ExplainabilityEngine
 
 logger = logging.getLogger(__name__)
 
@@ -82,7 +82,7 @@ class AnalysisService:
 
     # ── Image analysis ────────────────────────────────────────────
     async def analyze_image(self, image_bytes: bytes, image_url: str) -> AnalysisResponse:
-        from utils.ocr import extract_text_from_image
+        from backend.utils.ocr import extract_text_from_image
         extracted_text = await asyncio.get_event_loop().run_in_executor(
             None, extract_text_from_image, image_bytes
         )

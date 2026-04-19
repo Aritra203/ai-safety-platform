@@ -9,7 +9,7 @@ import re
 import html
 from typing import Dict, List
 
-from models.schemas import ToxicToken
+from backend.models.schemas import ToxicToken
 
 # ── Token patterns per category (ordered by priority) ────────────
 TOKEN_PATTERNS: Dict[str, List[tuple]] = {

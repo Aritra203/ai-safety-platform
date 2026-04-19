@@ -6,7 +6,7 @@ Exposes `db` as the active database instance throughout the app.
 import logging
 from fastapi import HTTPException
 from motor.motor_asyncio import AsyncIOMotorClient
-from config.settings import settings
+from backend.config.settings import settings
 
 logger = logging.getLogger(__name__)
 
