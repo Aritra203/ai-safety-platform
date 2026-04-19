@@ -26,13 +26,39 @@ logger = logging.getLogger(__name__)
 _routers_loaded = False
 
 
+async def _load_routes_startup(app: FastAPI):
+    """Load routes asynchronously after app is running"""
+    global _routers_loaded
+    
+    try:
+        logger.info("⏳ Loading ML routes in background...")
+        
+        from backend.routes.analysis import router as analysis_router
+        from backend.routes.fir import router as fir_router
+        from backend.routes.analytics import router as analytics_router
+        
+        app.include_router(analysis_router, tags=["Analysis"])
+        app.include_router(fir_router, tags=["FIR"])
+        app.include_router(analytics_router, tags=["Analytics"])
+        
+        _routers_loaded = True
+        logger.info("✅ ML routes loaded successfully")
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to load ML routes: {e}", exc_info=True)
+        _routers_loaded = False
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Minimal lifespan - startup is instant"""
     logger.info("🚀 SafeGuard AI starting...")
     
-    # Try DB connection in background
+    # Connect to DB in background
     asyncio.create_task(connect_db())
+    
+    # Load routes in background
+    asyncio.create_task(_load_routes_startup(app))
     
     logger.info("✅ Startup complete - listening for requests")
     yield
@@ -92,33 +118,3 @@ async def status():
         "ml_routes": _routers_loaded,
         "models": "loading in background" if not _routers_loaded else "ready",
     }
-
-
-async def _load_routes():
-    """Load routes asynchronously after app is running"""
-    global _routers_loaded
-    
-    try:
-        logger.info("⏳ Loading ML routes in background...")
-        
-        from backend.routes.analysis import router as analysis_router
-        from backend.routes.fir import router as fir_router
-        from backend.routes.analytics import router as analytics_router
-        
-        app.include_router(analysis_router, tags=["Analysis"])
-        app.include_router(fir_router, tags=["FIR"])
-        app.include_router(analytics_router, tags=["Analytics"])
-        
-        _routers_loaded = True
-        logger.info("✅ ML routes loaded successfully")
-        
-    except Exception as e:
-        logger.error(f"❌ Failed to load ML routes: {e}", exc_info=True)
-        _routers_loaded = False
-
-
-# Load routes after app starts
-@app.on_event("startup")
-async def startup():
-    """Load routes in background after app is running"""
-    asyncio.create_task(_load_routes())
