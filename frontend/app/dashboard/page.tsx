@@ -18,6 +18,7 @@ import ResultsPanel from "@/components/dashboard/ResultsPanel";
 import FIRHistory from "@/components/dashboard/FIRHistory";
 import ProfileInfo from "@/components/ProfileInfo";
 import { AnalysisResult } from "@/types";
+import { wakeBackend } from "@/services/api";
 
 type Tab = "text" | "image" | "context";
 
@@ -39,6 +40,14 @@ export default function DashboardPage() {
       router.push("/auth/signin?callbackUrl=/dashboard");
     }
   }, [status, router]);
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      wakeBackend().catch(() => {
+        // Silent best-effort warmup to reduce cold-start delays.
+      });
+    }
+  }, [status]);
 
   if (status === "loading") {
     return (

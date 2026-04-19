@@ -2,16 +2,33 @@ import axios from "axios";
 import { AnalysisResult, ConversationMessage } from "@/types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_TIMEOUT_MS = Number(process.env.NEXT_PUBLIC_API_TIMEOUT_MS || 180000);
 
 const api = axios.create({
   baseURL: API_BASE,
-  timeout: 60000,
+  timeout: API_TIMEOUT_MS,
 });
 
 // Response interceptor for error handling
 api.interceptors.response.use(
   (res) => res,
   (err) => {
+    if (axios.isAxiosError(err)) {
+      if (err.code === "ECONNABORTED") {
+        return Promise.reject(
+          new Error(
+            "Analysis timed out while the backend is warming up. Please retry in 30-60 seconds."
+          )
+        );
+      }
+
+      if (err.response?.status === 503) {
+        return Promise.reject(
+          new Error("Backend is waking up. Please wait a few seconds and retry.")
+        );
+      }
+    }
+
     const message =
       err.response?.data?.detail || err.message || "An unexpected error occurred";
     return Promise.reject(new Error(message));
@@ -80,4 +97,9 @@ export async function getFIRHistory(limit: number = 50, skip: number = 0) {
 export async function fetchAnalytics() {
   const { data } = await api.get("/analytics");
   return data;
+}
+
+// ── Backend Warmup ──────────────────────────────────────────────
+export async function wakeBackend(): Promise<void> {
+  await api.get("/health", { timeout: 90000 });
 }
