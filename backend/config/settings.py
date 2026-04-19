@@ -43,9 +43,12 @@ class Settings(BaseSettings):
     CELERY_RESULT_BACKEND: str = "redis://localhost:6379/1"
 
     # ── HuggingFace ──────────────────────────────────────────────
-    HF_MODEL_NAME: str = "unitary/toxic-bert"
+    HF_MODEL_NAME: str = "microsoft/deberta-v3-base"
     HF_CACHE_DIR: str = "/tmp/hf_cache"
     HF_DEVICE: str = "cpu"   # "cuda" if GPU available
+    HF_USE_QUANTIZATION: bool = True  # INT8 quantization for 2-3x speedup
+    HF_MAX_SEQUENCE_LENGTH: int = 512
+    HF_BATCH_SIZE: int = 32
 
     # ── Grooming model ───────────────────────────────────────────
     GROOMING_MODEL: str = "models/grooming_classifier"
