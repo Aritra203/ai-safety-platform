@@ -88,6 +88,7 @@ class AnalysisService:
         extracted_text = await asyncio.get_event_loop().run_in_executor(
             None, extract_text_from_image, image_bytes
         )
+        logger.info("OCR extracted %d chars for image: %s", len(extracted_text.strip()), image_url)
         if not extracted_text.strip():
             extracted_text = "[No text detected in image]"
 
