@@ -20,7 +20,9 @@ frontend/.next/
 
 # ML Model cache (downloaded dynamically from HuggingFace)
 models/
+scripts/models/
 .cache/
+scripts/.cache/
 huggingface/
 
 # Misc
