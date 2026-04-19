@@ -7,6 +7,7 @@ import logging
 import os
 import uuid
 from datetime import datetime, timedelta
+from datetime import timezone
 from pathlib import Path
 
 from reportlab.lib import colors
@@ -136,18 +137,31 @@ class FIRService:
         
         total = await self.db.fir_reports.count_documents({})
 
-        def _to_iso(value):
+        def _to_datetime(value):
             if isinstance(value, datetime):
-                return value.isoformat()
+                return value
             if value is None:
                 return None
-            return str(value)
+            if isinstance(value, (int, float)):
+                try:
+                    return datetime.fromtimestamp(value, tz=timezone.utc)
+                except Exception:
+                    return None
+            if isinstance(value, str):
+                text = value.strip()
+                if not text:
+                    return None
+                try:
+                    return datetime.fromisoformat(text.replace("Z", "+00:00"))
+                except Exception:
+                    return None
+            return None
         
         # Convert to response format
         history_items = []
         for fir in firs:
-            created_at = _to_iso(fir.get("created_at"))
-            finalized_at = _to_iso(fir.get("finalized_at"))
+            created_at = _to_datetime(fir.get("created_at")) or datetime.utcnow()
+            finalized_at = _to_datetime(fir.get("finalized_at"))
             incident_date = fir.get("incident_date")
             if isinstance(incident_date, datetime):
                 incident_date = incident_date.date().isoformat()
@@ -161,7 +175,7 @@ class FIRService:
                 "accused_name": str(fir.get("accused_name")) if fir.get("accused_name") else None,
                 "incident_date": str(incident_date),
                 "incident_location": str(fir.get("incident_location")) if fir.get("incident_location") else None,
-                "created_at": created_at or datetime.utcnow().isoformat(),
+                "created_at": created_at,
                 "finalized_at": finalized_at,
                 "pdf_url": str(fir.get("pdf_url")) if fir.get("pdf_url") else None,
             })
