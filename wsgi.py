@@ -1,0 +1,20 @@
+"""
+WSGI Entry Point for Render Deployment
+Handles Python path setup before importing the FastAPI app
+"""
+import os
+import sys
+from pathlib import Path
+
+# Set up Python path BEFORE any imports
+PROJECT_ROOT = Path(__file__).resolve().parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+# Now import the app
+from backend.main import app
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
