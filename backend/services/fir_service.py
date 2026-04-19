@@ -43,6 +43,8 @@ class FIRService:
     def __init__(self, db):
         self.db = db
         self.output_dir = Path(settings.FIR_OUTPUT_DIR)
+
+    def _ensure_output_dir(self) -> Path:
         try:
             self.output_dir.mkdir(parents=True, exist_ok=True)
         except OSError as e:
@@ -55,6 +57,7 @@ class FIRService:
                 fallback_dir,
             )
             self.output_dir = fallback_dir
+            return self.output_dir
 
     # ── Create FIR record ─────────────────────────────────────────
     async def create_fir_record(self, analysis_id: str) -> str:
@@ -84,7 +87,8 @@ class FIRService:
 
         analysis = await self.db.analyses.find_one({"id": data.analysis_id})
 
-        pdf_path = self.output_dir / f"{data.fir_id}.pdf"
+        output_dir = self._ensure_output_dir()
+        pdf_path = output_dir / f"{data.fir_id}.pdf"
         self._build_pdf(pdf_path, data, analysis)
 
         # Upload to Cloudinary
