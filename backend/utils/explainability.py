@@ -103,7 +103,55 @@ class ExplainabilityEngine:
                 
                 return token_importance
         except Exception:
-            return {}\n    \n    def highlight_tokens(\n        self, text: str, scores: Dict[str, float]\n    ) -> List[ToxicToken]:\n        \"\"\"\n        Find toxic tokens using hybrid approach:\n        1. Pattern matching (fast, deterministic)\n        2. Attention-based attribution (ML-informed)\n        \n        Only highlights tokens from categories with score > 0.2.\n        \"\"\"\n        found: List[ToxicToken] = []\n        seen_spans: set = set()\n        \n        # Get attention weights for scoring boost\n        attention_weights = self.get_attention_attribution(text)\n\n        for category, pattern_list in TOKEN_PATTERNS.items():\n            if scores.get(category, 0.0) < 0.2:\n                continue\n\n            for pattern, base_score in pattern_list:\n                for match in re.finditer(pattern, text, re.IGNORECASE):\n                    span = (match.start(), match.end())\n                    if span not in seen_spans:\n                        seen_spans.add(span)\n                        \n                        # Combine pattern score + attention weight\n                        attention_boost = 1.0\n                        matched_token = match.group().lower()\n                        if matched_token in attention_weights:\n                            # Scale attention (0-1 range) as multiplier (0.8-1.2 range)\n                            attention_boost = 1.0 + (attention_weights[matched_token] * 0.2)\n                        \n                        token_score = round(\n                            min(base_score * scores.get(category, 1.0) * attention_boost, 1.0), 3\n                        )\n                        found.append(\n                            ToxicToken(\n                                token=match.group(),\n                                score=token_score,\n                                category=category,\n                            )\n                        )\n\n        # Sort by score descending and keep top 15\n        found.sort(key=lambda x: x.score, reverse=True)\n        return found[:15]  # max 15 highlights
+            return {}
+
+    def highlight_tokens(
+        self, text: str, scores: Dict[str, float]
+    ) -> List[ToxicToken]:
+        """
+        Find toxic tokens using hybrid approach:
+        1. Pattern matching (fast, deterministic)
+        2. Attention-based attribution (ML-informed)
+
+        Only highlights tokens from categories with score > 0.2.
+        """
+        found: List[ToxicToken] = []
+        seen_spans: set = set()
+
+        # Get attention weights for scoring boost
+        attention_weights = self.get_attention_attribution(text)
+
+        for category, pattern_list in TOKEN_PATTERNS.items():
+            if scores.get(category, 0.0) < 0.2:
+                continue
+
+            for pattern, base_score in pattern_list:
+                for match in re.finditer(pattern, text, re.IGNORECASE):
+                    span = (match.start(), match.end())
+                    if span not in seen_spans:
+                        seen_spans.add(span)
+
+                        # Combine pattern score + attention weight
+                        attention_boost = 1.0
+                        matched_token = match.group().lower()
+                        if matched_token in attention_weights:
+                            # Scale attention (0-1 range) as multiplier (0.8-1.2 range)
+                            attention_boost = 1.0 + (attention_weights[matched_token] * 0.2)
+
+                        token_score = round(
+                            min(base_score * scores.get(category, 1.0) * attention_boost, 1.0), 3
+                        )
+                        found.append(
+                            ToxicToken(
+                                token=match.group(),
+                                score=token_score,
+                                category=category,
+                            )
+                        )
+
+        # Sort by score descending and keep top 15
+        found.sort(key=lambda x: x.score, reverse=True)
+        return found[:15]  # max 15 highlights
 
     def build_highlighted_html(
         self, text: str, toxic_tokens: List[ToxicToken]
