@@ -20,7 +20,7 @@ def _get_paddle_ocr():
     if _paddle_ocr is None:
         try:
             from paddleocr import PaddleOCR
-            _paddle_ocr = PaddleOCR(use_angle_cls=True, lang="ch", rec_model_dir="~/.paddleocr/")
+            _paddle_ocr = PaddleOCR(use_angle_cls=True, lang="en", show_log=False)
             logger.info("✅ PaddleOCR initialized")
         except Exception as e:
             logger.warning("PaddleOCR unavailable (%s)", e)
@@ -34,7 +34,7 @@ def _preprocess_image(image):
     Handles contrast, deskew, and binarization for handwritten text.
     """
     try:
-        from PIL import ImageEnhance, ImageFilter
+        from PIL import Image, ImageEnhance
         import cv2
 
         # Enhance contrast for better text visibility
@@ -110,10 +110,17 @@ def _extract_with_paddle(image_bytes: bytes) -> str:
         try:
             result = paddle_ocr.ocr(tmp_path, cls=True)
             text_parts = []
-            for line in result:
-                for word_info in line:
-                    if word_info and len(word_info) >= 2:
-                        text_parts.append(word_info[1][0])  # Extract text
+
+            # PaddleOCR 3.x can return dict-based output; keep compatibility with list-based output too.
+            if result and isinstance(result, list) and isinstance(result[0], dict):
+                for page in result:
+                    rec_texts = page.get("rec_texts") or []
+                    text_parts.extend([t for t in rec_texts if t])
+            else:
+                for line in result or []:
+                    for word_info in line:
+                        if word_info and len(word_info) >= 2:
+                            text_parts.append(word_info[1][0])
             
             text = " ".join(text_parts).strip()
             if text:
@@ -123,7 +130,7 @@ def _extract_with_paddle(image_bytes: bytes) -> str:
             import os
             try:
                 os.unlink(tmp_path)
-            except:
+            except Exception:
                 pass
     except Exception as e:
         logger.warning("PaddleOCR extraction failed: %s", e)
