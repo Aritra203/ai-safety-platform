@@ -57,7 +57,7 @@ class FIRService:
                 fallback_dir,
             )
             self.output_dir = fallback_dir
-            return self.output_dir
+        return self.output_dir
 
                                                                     
     async def create_fir_record(self, analysis_id: str) -> str:

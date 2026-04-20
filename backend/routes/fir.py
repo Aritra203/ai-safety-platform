@@ -14,14 +14,14 @@ from backend.models.schemas import (
     FIRFinalizeResponse,
 )
 from backend.services.fir_service import FIRService
-from backend.config.database import get_db_optional
+from backend.config.database import get_db
 from backend.config.settings import settings
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-def get_fir_service(db=Depends(get_db_optional)) -> FIRService:
+def get_fir_service(db=Depends(get_db)) -> FIRService:
     return FIRService(db)
 
 
