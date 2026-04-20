@@ -31,7 +31,7 @@ export default function FIRHistory() {
     try {
       setLoading(true);
       setError(null);
-      const response = await getFIRHistory(50, 0);
+      const response = await getFIRHistory(20, 0);
       setFirs(response.firs);
       setTotalCount(response.total);
     } catch (err) {

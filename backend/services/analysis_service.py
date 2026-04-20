@@ -144,12 +144,12 @@ class AnalysisService:
         return f"analysis:text:{text_hash}"
 
                                                                     
-    async def analyze_image(self, image_bytes: bytes, image_url: str) -> AnalysisResponse:
+    async def analyze_image(self, image_bytes: bytes, image_url: str | None = None) -> AnalysisResponse:
         from backend.utils.ocr import extract_text_from_image
         extracted_text = await asyncio.get_event_loop().run_in_executor(
             None, extract_text_from_image, image_bytes
         )
-        logger.info("OCR extracted %d chars for image: %s", len(extracted_text.strip()), image_url)
+        logger.info("OCR extracted %d chars for image", len(extracted_text.strip()))
         if not extracted_text.strip():
             raise ValueError(
                 "Unable to extract text from image. "
@@ -160,7 +160,8 @@ class AnalysisService:
         result = await asyncio.get_event_loop().run_in_executor(
             None, self._sync_analyze_text, extracted_text, image_url
         )
-        result.image_url = image_url
+        if image_url:
+            result.image_url = image_url
         asyncio.create_task(self._persist_async(result))
         return result
 

@@ -3,6 +3,7 @@ Analysis routes: /analyze-text, /analyze-image, /analyze-context
 All heavy lifting is delegated to service layer.
 """
 
+import asyncio
 import logging
 from fastapi import APIRouter, File, UploadFile, HTTPException, Depends
 from fastapi.responses import JSONResponse
@@ -65,13 +66,25 @@ async def analyze_image(
         file_bytes = await file.read()
         logger.info("Image analysis: %s (%d bytes)", file.filename, len(file_bytes))
 
-                                                   
         cloudinary_service = CloudinaryService()
-        image_url = await cloudinary_service.upload_bytes(
+        upload_task = asyncio.create_task(cloudinary_service.upload_bytes(
             file_bytes, folder="evidence", filename=file.filename or "upload"
-        )
+        ))
 
-        result = await service.analyze_image(file_bytes, image_url)
+        try:
+            # Run OCR + AI inference immediately; do not block on network upload first.
+            result = await service.analyze_image(file_bytes, image_url=None)
+        except Exception:
+            upload_task.cancel()
+            raise
+
+        try:
+            image_url = await upload_task
+            if image_url:
+                result.image_url = image_url
+        except Exception as upload_error:
+            logger.warning("Image upload failed after analysis completion: %s", upload_error)
+
         return result
 
     except ValueError as e:

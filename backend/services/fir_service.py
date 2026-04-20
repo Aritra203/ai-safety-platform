@@ -3,6 +3,7 @@ FIR Service — generates court-ready PDF using ReportLab Platypus,
 uploads to Cloudinary, and persists metadata.
 """
 
+import asyncio
 import logging
 import os
 import uuid
@@ -210,10 +211,37 @@ class FIRService:
         limit = max(1, min(limit, 100))
         skip = max(0, skip)
 
-        cursor = self.db.fir_reports.find({}).sort("created_at", -1).skip(skip).limit(limit)
-        firs = await cursor.to_list(length=limit)
-        
-        total = await self.db.fir_reports.count_documents({})
+        projection = {
+            "_id": 0,
+            "fir_id": 1,
+            "status": 1,
+            "complainant_name": 1,
+            "accused_name": 1,
+            "incident_date": 1,
+            "incident_location": 1,
+            "created_at": 1,
+            "finalized_at": 1,
+            "pdf_url": 1,
+        }
+
+        async def _fetch_page():
+            cursor = (
+                self.db.fir_reports
+                .find({}, projection)
+                .sort("created_at", -1)
+                .skip(skip)
+                .limit(limit)
+            )
+            return await cursor.to_list(length=limit)
+
+        async def _fetch_total():
+            try:
+                # Faster than full count on large collections.
+                return await self.db.fir_reports.estimated_document_count()
+            except Exception:
+                return await self.db.fir_reports.count_documents({})
+
+        firs, total = await asyncio.gather(_fetch_page(), _fetch_total())
 
         def _to_datetime(value):
             if isinstance(value, datetime):
