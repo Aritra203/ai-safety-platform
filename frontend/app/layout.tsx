@@ -46,6 +46,30 @@ export default function RootLayout({
             `,
           }}
         />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                const extensionMessage = 'Could not establish connection. Receiving end does not exist.';
+                window.addEventListener('unhandledrejection', function (event) {
+                  const reason = event && event.reason;
+                  const message =
+                    typeof reason === 'string'
+                      ? reason
+                      : (reason && reason.message) || '';
+                  const stack =
+                    reason && typeof reason === 'object'
+                      ? String(reason.stack || '')
+                      : '';
+
+                  if (message.includes(extensionMessage) || stack.includes('contentscript')) {
+                    event.preventDefault();
+                  }
+                });
+              } catch (e) {}
+            `,
+          }}
+        />
       </head>
       <body className={`${syne.variable} ${spaceMono.variable} font-syne antialiased`}>
         <Providers>
