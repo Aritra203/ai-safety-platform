@@ -17,10 +17,25 @@ from typing import Dict, Tuple, List, Optional
 import hashlib
 from backend.config.settings import settings
 
-try:
-    import torch
-except Exception:                                            
-    torch = None
+# Lazy import torch only when model loading/inference is needed.
+_TORCH_MODULE = None
+_TORCH_IMPORT_ATTEMPTED = False
+
+
+def _get_torch():
+    global _TORCH_MODULE, _TORCH_IMPORT_ATTEMPTED
+    if _TORCH_IMPORT_ATTEMPTED:
+        return _TORCH_MODULE
+
+    _TORCH_IMPORT_ATTEMPTED = True
+    try:
+        import torch as torch_module
+        _TORCH_MODULE = torch_module
+    except Exception as e:
+        logger.warning("PyTorch import failed; falling back to rule-only mode (%s)", e)
+        _TORCH_MODULE = None
+
+    return _TORCH_MODULE
 
 logger = logging.getLogger(__name__)
 
@@ -144,16 +159,18 @@ class ToxicityClassifier:
         self._load_multilabel_model()
 
     def _set_device(self) -> None:
-        if torch is None:
+        torch_module = _get_torch()
+        if torch_module is None:
             self.device = None
             return
 
-        self.device = torch.device(
-            "cuda" if settings.HF_DEVICE == "cuda" and torch.cuda.is_available() else "cpu"
+        self.device = torch_module.device(
+            "cuda" if settings.HF_DEVICE == "cuda" and torch_module.cuda.is_available() else "cpu"
         )
 
     def _load_model(self):
         """Load stage-1 toxic gate model (mDeBERTa family by default)."""
+        torch_module = _get_torch()
         gate_enabled = settings.HF_ENABLE_GATE_MODEL or settings.HF_ENABLE_MODEL
         model_name = (
             settings.TOXIC_GATE_MODEL_NAME
@@ -168,7 +185,7 @@ class ToxicityClassifier:
             self._model_enabled = False
             return
 
-        if torch is None:
+        if torch_module is None:
             logger.warning("PyTorch unavailable; running toxicity classifier in rule-only mode")
             self.model = None
             self.tokenizer = None
@@ -199,10 +216,10 @@ class ToxicityClassifier:
                                                           
             if settings.HF_USE_QUANTIZATION and self.device and self.device.type == "cpu":
                 try:
-                    self.model = torch.quantization.quantize_dynamic(
+                    self.model = torch_module.quantization.quantize_dynamic(
                         self.model,
-                        {torch.nn.Linear},
-                        dtype=torch.qint8,
+                        {torch_module.nn.Linear},
+                        dtype=torch_module.qint8,
                     )
                     self._is_quantized = True
                     logger.info("✅ Model quantized (INT8) — 2-3x faster inference")
@@ -223,6 +240,7 @@ class ToxicityClassifier:
 
     def _load_multilabel_model(self):
         """Load stage-2 multi-label classifier (XLM-R family by default)."""
+        torch_module = _get_torch()
         if not settings.HF_ENABLE_MULTILABEL_MODEL:
             logger.info("Stage-2 multi-label model disabled; using rule-calibrated labels")
             self.multilabel_model = None
@@ -230,7 +248,7 @@ class ToxicityClassifier:
             self._multilabel_enabled = False
             return
 
-        if torch is None:
+        if torch_module is None:
             logger.warning("PyTorch unavailable; disabling multi-label model")
             self.multilabel_model = None
             self.multilabel_tokenizer = None
@@ -260,10 +278,10 @@ class ToxicityClassifier:
 
             if settings.HF_USE_QUANTIZATION and self.device and self.device.type == "cpu":
                 try:
-                    self.multilabel_model = torch.quantization.quantize_dynamic(
+                    self.multilabel_model = torch_module.quantization.quantize_dynamic(
                         self.multilabel_model,
-                        {torch.nn.Linear},
-                        dtype=torch.qint8,
+                        {torch_module.nn.Linear},
+                        dtype=torch_module.qint8,
                     )
                     logger.info("✅ Stage-2 model quantized (INT8)")
                 except Exception as e:
@@ -403,7 +421,8 @@ class ToxicityClassifier:
 
     def _infer_multilabel_scores(self, text: str) -> Dict[str, float]:
         """Run stage-2 multi-label model and map labels into platform categories."""
-        if torch is None:
+        torch_module = _get_torch()
+        if torch_module is None:
             raise RuntimeError("PyTorch is unavailable")
 
         if not self.multilabel_model or not self.multilabel_tokenizer:
@@ -417,7 +436,7 @@ class ToxicityClassifier:
             padding=True,
         ).to(self.device)
 
-        with torch.no_grad():
+        with torch_module.no_grad():
             outputs = self.multilabel_model(**inputs)
 
         logits = outputs.logits
@@ -426,7 +445,7 @@ class ToxicityClassifier:
 
                                                                               
                                                                        
-        probs = torch.sigmoid(logits)[0]
+        probs = torch_module.sigmoid(logits)[0]
 
         raw_id2label = getattr(self.multilabel_model.config, "id2label", {}) or {}
         id2label: Dict[int, str] = {}
@@ -481,13 +500,14 @@ class ToxicityClassifier:
 
     def _extract_toxic_probability(self, logits: "torch.Tensor", id2label: Dict[int, str]) -> float:
         """Extract a robust toxic probability from binary or multi-class gate heads."""
-        if torch is None:
+        torch_module = _get_torch()
+        if torch_module is None:
             return 0.0
 
         if logits.shape[-1] == 1:
-            return float(torch.sigmoid(logits)[0, 0].cpu())
+            return float(torch_module.sigmoid(logits)[0, 0].cpu())
 
-        probs = torch.softmax(logits, dim=-1)[0]
+        probs = torch_module.softmax(logits, dim=-1)[0]
         toxic_max = 0.0
 
         for idx, score in enumerate(probs):
@@ -506,7 +526,8 @@ class ToxicityClassifier:
     
     def _infer_with_attention(self, text: str) -> Tuple[float, object]:
         """Run inference and return: (toxic_score, attention_weights)."""
-        if torch is None:
+        torch_module = _get_torch()
+        if torch_module is None:
             raise RuntimeError("PyTorch is unavailable")
 
         if not self.model or not self.tokenizer:
@@ -522,7 +543,7 @@ class ToxicityClassifier:
         ).to(self.device)
         
                       
-        with torch.no_grad():
+        with torch_module.no_grad():
             outputs = self.model(**inputs)
         logits = outputs.logits
 
