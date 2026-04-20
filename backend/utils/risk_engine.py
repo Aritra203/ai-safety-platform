@@ -9,7 +9,7 @@ Scoring logic:
 
 from typing import Dict, Tuple
 
-# ── Category weights ──────────────────────────────────────────────
+                                                                    
 CATEGORY_WEIGHTS = {
     "grooming": 1.5,
     "threat": 1.3,
@@ -18,7 +18,7 @@ CATEGORY_WEIGHTS = {
     "cyberbullying": 0.9,
 }
 
-# ── Risk thresholds ───────────────────────────────────────────────
+                                                                    
 THRESHOLDS = [
     (0.75, "CRITICAL"),
     (0.50, "HIGH"),
@@ -35,19 +35,35 @@ class RiskEngine:
         if not scores:
             return "LOW", 0.0
 
-        # Weighted composite
-        weighted_sum = 0.0
-        weight_total = 0.0
-        for cat, score in scores.items():
-            w = CATEGORY_WEIGHTS.get(cat, 1.0)
-            weighted_sum += score * w
-            weight_total += w
+        max_score = max(scores.values(), default=0.0)
 
-        overall = round(weighted_sum / max(weight_total, 1.0), 4)
+                                                                              
+                                                    
+        active_scores = {cat: score for cat, score in scores.items() if score >= 0.05}
 
-        # Check if any single category is critically high (override)
-        if scores.get("grooming", 0) > 0.7 or scores.get("threat", 0) > 0.85:
+        if not active_scores:
+            overall = round(max_score, 4)
+        else:
+            weighted_sum = 0.0
+            weight_total = 0.0
+            for cat, score in active_scores.items():
+                w = CATEGORY_WEIGHTS.get(cat, 1.0)
+                weighted_sum += score * w
+                weight_total += w
+
+            weighted_active = weighted_sum / max(weight_total, 1.0)
+            overall = round(max(weighted_active, max_score * 0.9), 4)
+
+                                                        
+        if scores.get("grooming", 0.0) >= 0.70 or scores.get("threat", 0.0) >= 0.75:
             return "CRITICAL", max(overall, 0.75)
+
+        if (
+            scores.get("threat", 0.0) >= 0.60
+            or scores.get("sexual_harassment", 0.0) >= 0.65
+            or scores.get("hate_speech", 0.0) >= 0.70
+        ):
+            return "HIGH", max(overall, 0.60)
 
         for threshold, level in THRESHOLDS:
             if overall >= threshold:

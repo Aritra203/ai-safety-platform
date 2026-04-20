@@ -40,7 +40,7 @@ class RobustOCREngine:
         - Deskewing
         - Thresholding
         """
-        # Load image
+                    
         if isinstance(image_input, str):
             img = cv2.imread(image_input)
         else:
@@ -49,7 +49,7 @@ class RobustOCREngine:
         if img is None:
             raise ValueError("Could not load image")
         
-        # Convert to grayscale
+                              
         if len(img.shape) == 3:
             gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         else:
@@ -57,25 +57,25 @@ class RobustOCREngine:
         
         logger.debug("Step 1: Grayscale conversion OK")
         
-        # Step 1: Contrast Enhancement (CLAHE)
+                                              
         clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
         enhanced = clahe.apply(gray)
         logger.debug("Step 2: Contrast enhancement OK")
         
-        # Step 2: Denoising (removes noise while preserving edges)
+                                                                  
         denoised = cv2.fastNlMeansDenoising(enhanced, h=10, templateWindowSize=7, searchWindowSize=21)
         logger.debug("Step 3: Denoising OK")
         
-        # Step 3: Morphological operations (close small holes, remove noise)
+                                                                            
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
         morph = cv2.morphologyEx(denoised, cv2.MORPH_CLOSE, kernel, iterations=1)
         logger.debug("Step 4: Morphological operations OK")
         
-        # Step 4: Deskewing (fix rotated text)
+                                              
         deskewed = self._deskew_image(morph)
         logger.debug("Step 5: Deskewing OK")
         
-        # Step 5: Thresholding (binary conversion)
+                                                  
         _, binary = cv2.threshold(deskewed, 150, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
         logger.debug("Step 6: Thresholding OK")
         
@@ -109,11 +109,11 @@ class RobustOCREngine:
                 logger.info("Loading EasyOCR reader...")
                 self.easyocr_reader = easyocr.Reader(self.languages, gpu=True)
             
-            # Support both path and numpy array
+                                               
             if isinstance(image_input, str):
                 result = self.easyocr_reader.readtext(image_input)
             else:
-                # Save to temp file for EasyOCR
+                                               
                 temp_path = "/tmp/ocr_temp.png"
                 cv2.imwrite(temp_path, image_input)
                 result = self.easyocr_reader.readtext(temp_path)
@@ -178,7 +178,7 @@ class RobustOCREngine:
             
             return {
                 'text': text,
-                'confidence': 0.7,  # Tesseract doesn't return confidence
+                'confidence': 0.7,                                       
                 'success': bool(text.strip())
             }
         except Exception as e:
@@ -191,7 +191,7 @@ class RobustOCREngine:
         """
         logger.info(f"Starting robust OCR for: {image_path}")
         
-        # Step 1: Preprocess
+                            
         try:
             preprocessed = self.preprocess_image(image_path)
         except Exception as e:
@@ -206,7 +206,7 @@ class RobustOCREngine:
         
         results = {}
         
-        # Step 2: Try all engines
+                                 
         logger.info("Attempting OCR with EasyOCR...")
         results['easyocr'] = self.extract_text_easyocr(image_path)
         
@@ -216,7 +216,7 @@ class RobustOCREngine:
         logger.info("Attempting OCR with Tesseract...")
         results['tesseract'] = self.extract_text_tesseract(preprocessed)
         
-        # Step 3: Select best result (highest confidence + non-empty text)
+                                                                          
         best_engine = None
         best_confidence = -1
         
@@ -227,14 +227,14 @@ class RobustOCREngine:
                     best_confidence = confidence
                     best_engine = engine
         
-        # Step 4: Return best result
+                                    
         if best_engine:
             final_result = results[best_engine]
             final_result['engine_used'] = best_engine
             final_result['status'] = 'success'
             logger.info(f"✅ OCR successful with {best_engine} (confidence: {best_confidence:.2f})")
         else:
-            # Fallback: concat all non-empty results
+                                                    
             all_text = '\n'.join([
                 r.get('text', '') for r in results.values() 
                 if r.get('success') and r.get('text', '').strip()
@@ -251,24 +251,24 @@ class RobustOCREngine:
         return final_result
 
 
-# FastAPI Integration
+                     
 from fastapi import UploadFile, File
 from fastapi.responses import JSONResponse
 
 async def analyze_image_with_robust_ocr(file: UploadFile = File(...)):
     """FastAPI endpoint for image analysis with robust OCR"""
     
-    # Save uploaded file
+                        
     contents = await file.read()
     temp_path = f"/tmp/{file.filename}"
     with open(temp_path, 'wb') as f:
         f.write(contents)
     
-    # Run OCR
+             
     ocr = RobustOCREngine(languages=['en', 'hi', 'bn'])
     ocr_result = ocr.extract_text_robust(temp_path)
     
-    # If text found, analyze with toxicity model
+                                                
     if ocr_result['status'] == 'success' and ocr_result.get('text'):
         from backend.services.analysis_service import AnalysisService
         

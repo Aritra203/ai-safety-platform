@@ -9,7 +9,6 @@ const api = axios.create({
   timeout: API_TIMEOUT_MS,
 });
 
-// Response interceptor for error handling
 api.interceptors.response.use(
   (res) => res,
   (err) => {
@@ -35,13 +34,11 @@ api.interceptors.response.use(
   }
 );
 
-// ── Text Analysis ────────────────────────────────────────────────
 export async function analyzeText(text: string): Promise<AnalysisResult> {
   const { data } = await api.post("/analyze-text", { text });
   return data;
 }
 
-// ── Image Analysis ───────────────────────────────────────────────
 export async function analyzeImage(formData: FormData): Promise<AnalysisResult> {
   const { data } = await api.post("/analyze-image", formData, {
     headers: { "Content-Type": "multipart/form-data" },
@@ -49,7 +46,6 @@ export async function analyzeImage(formData: FormData): Promise<AnalysisResult> 
   return data;
 }
 
-// ── Conversation Context Analysis ────────────────────────────────
 export async function analyzeContext(
   messages: ConversationMessage[]
 ): Promise<AnalysisResult> {
@@ -57,7 +53,6 @@ export async function analyzeContext(
   return data;
 }
 
-// ── FIR Generation ───────────────────────────────────────────────
 export async function generateFIR(
   analysisId: string
 ): Promise<{ fir_id: string }> {
@@ -87,19 +82,16 @@ export function downloadFIR(firId: string): void {
   window.open(`${API_BASE}/download-fir/${firId}`, "_blank");
 }
 
-// ── FIR History ──────────────────────────────────────────────────
 export async function getFIRHistory(limit: number = 50, skip: number = 0) {
   const { data } = await api.get("/fir-history", { params: { limit, skip } });
   return data;
 }
 
-// ── Analytics ────────────────────────────────────────────────────
 export async function fetchAnalytics() {
   const { data } = await api.get("/analytics");
   return data;
 }
 
-// ── Backend Warmup ──────────────────────────────────────────────
 export async function wakeBackend(): Promise<void> {
   await api.get("/health", { timeout: 90000 });
 }

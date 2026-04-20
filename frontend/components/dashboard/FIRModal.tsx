@@ -93,7 +93,6 @@ export default function FIRModal({ firId, result, onClose }: Props) {
               </div>
             </section>
 
-            {/* Complainant Details */}
             <div>
               <p className="mb-3 text-xs font-bold uppercase text-slate-600 dark:text-slate-400 tracking-widest">Complainant Details</p>
               <div className="grid gap-3 md:grid-cols-2">
@@ -128,7 +127,6 @@ export default function FIRModal({ firId, result, onClose }: Props) {
               </label>
             </div>
 
-            {/* Accused Details */}
             <div>
               <p className="mb-3 text-xs font-bold uppercase text-slate-600 tracking-widest">Against Whom (Accused)</p>
               <div className="grid gap-3 md:grid-cols-2">
@@ -154,7 +152,6 @@ export default function FIRModal({ firId, result, onClose }: Props) {
               </div>
             </div>
 
-            {/* Incident Details */}
             <div>
               <p className="mb-3 text-xs font-bold uppercase text-slate-600 tracking-widest">Incident Details</p>
               <div className="grid gap-3 md:grid-cols-2">

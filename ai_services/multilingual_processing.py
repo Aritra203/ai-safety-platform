@@ -18,17 +18,23 @@ from typing import Tuple
 
 logger = logging.getLogger(__name__)
 
-# ── L33tspeak substitution map ────────────────────────────────────
+                                                                    
 L33T_MAP = {
     "0": "o", "1": "i", "3": "e", "4": "a",
     "5": "s", "6": "g", "7": "t", "8": "b", "@": "a",
     "$": "s", "!": "i", "|": "i",
 }
 
-# ── Common Hinglish abuse → English normalization ─────────────────
+                                                                    
 HINGLISH_NORM = {
     r"\bbc\b": "motherfucker",
     r"\bmc\b": "motherfucker",
+    r"\bbsdk\b": "bastard",
+    r"\bmadarchod\b": "motherfucker",
+    r"\bbehenchod\b": "motherfucker",
+    r"\brandi\b": "whore",
+    r"\blund\b": "dick",
+    r"\bbhosdike\b": "bastard",
     r"\bbk\b": "bastard",
     r"\bchutiya\b": "idiot",
     r"\bbewakoof\b": "stupid",
@@ -40,7 +46,28 @@ HINGLISH_NORM = {
     r"\bchod dene\b": "abandon",
 }
 
-# ── Supported language codes ──────────────────────────────────────
+                                                                                     
+                                                                        
+INDIC_NORM = {
+                        
+    r"मादरचोद|मदरचोद": "motherfucker",
+    r"बहनचोद|बहनचोद": "motherfucker",
+    r"चूतिया|चुतिया": "idiot",
+    r"हरामी": "bastard",
+    r"रंडी": "whore",
+    r"भोसड़ीके|भोसडीके": "bastard",
+    r"मार दूंगा|मार दूँगा|जान से मार": "will kill",
+    r"बलात्कार": "rape",
+
+             
+    r"শুয়োরের বাচ্চা|শুয়োরের বাচ্চা": "bastard",
+    r"বেশ্যা": "whore",
+    r"চোদ": "fuck",
+    r"ধর্ষণ": "rape",
+    r"মেরে ফেলব|খুন করব": "will kill",
+}
+
+                                                                    
 SUPPORTED_LANGS = {"en", "hi", "bn", "ur"}
 
 
@@ -60,19 +87,25 @@ class MultilingualProcessor:
         """
         Returns (language_code, normalized_text).
         """
-        # 1. Detect language
+                            
         lang = self._detect_language(text)
 
-        # 2. Strip l33tspeak obfuscation
+                                        
         normalized = self._strip_leet(text)
 
-        # 3. Normalize Hinglish tokens
+                                      
         normalized = self._normalize_hinglish(normalized)
 
-        # 4. Unicode normalisation
+                                                              
+        normalized = self._normalize_indic_terms(normalized)
+
+                                                                    
+        normalized = self._normalize_spacing_obfuscation(normalized)
+
+                                  
         normalized = unicodedata.normalize("NFC", normalized)
 
-        # 5. Strip excessive whitespace / special chars
+                                                       
         normalized = re.sub(r"\s+", " ", normalized).strip()
 
         return lang, normalized
@@ -83,7 +116,7 @@ class MultilingualProcessor:
         try:
             from langdetect import detect
             lang = detect(text)
-            return lang if lang in SUPPORTED_LANGS else lang  # pass through
+            return lang if lang in SUPPORTED_LANGS else "en"
         except Exception:
             return self._heuristic_detect(text)
 
@@ -111,3 +144,17 @@ class MultilingualProcessor:
         for pattern, replacement in HINGLISH_NORM.items():
             text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
         return text
+
+    def _normalize_indic_terms(self, text: str) -> str:
+        """Replace common Hindi/Bengali script abuse/toxic terms with English equivalents."""
+        for pattern, replacement in INDIC_NORM.items():
+            text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
+        return text
+
+    def _normalize_spacing_obfuscation(self, text: str) -> str:
+        """Collapse spaced single-letter sequences (e.g. 'f u c k')."""
+        return re.sub(
+            r"\b(?:[a-zA-Z]\s+){2,}[a-zA-Z]\b",
+            lambda m: m.group(0).replace(" ", ""),
+            text,
+        )

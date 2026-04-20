@@ -14,7 +14,6 @@ export default function SignInContent() {
   const handleGoogleSignIn = async () => {
     setLoading(true);
     try {
-      // NextAuth will handle the full redirect flow
       await signIn("google", {
         callbackUrl,
         redirect: true,
@@ -27,14 +26,11 @@ export default function SignInContent() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-orange-50 via-white to-sky-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-900 flex items-center justify-center px-4">
-      {/* Background orbs */}
       <div className="orb left-[-180px] top-[-120px] h-[340px] w-[340px] bg-orange-400/20 dark:bg-orange-400/5" />
       <div className="orb right-[-120px] bottom-[10%] h-[260px] w-[260px] bg-sky-300/25 dark:bg-sky-300/5" />
 
       <div className="relative z-10 w-full max-w-md">
-        {/* Card */}
         <div className="glass rounded-3xl border border-white/80 dark:border-slate-700/60 p-8 md:p-10 shadow-[0_20px_60px_rgba(0,0,0,0.08)] dark:shadow-[0_20px_60px_rgba(0,0,0,0.3)] dark:bg-slate-800/50">
-          {/* Logo */}
           <div className="mb-8 flex justify-center">
             <div className="hero-ring">
               <div className="flex h-12 w-12 items-center justify-center">
@@ -55,7 +51,6 @@ export default function SignInContent() {
             </div>
           </div>
 
-          {/* Heading */}
           <h1 className="text-center text-3xl font-bold text-slate-900 dark:text-white mb-2">
             Welcome to SafeGuard
           </h1>
@@ -63,7 +58,6 @@ export default function SignInContent() {
             Sign in with your Google account to continue
           </p>
 
-          {/* Google Sign In Button */}
           <button
             onClick={handleGoogleSignIn}
             disabled={loading}
@@ -91,7 +85,6 @@ export default function SignInContent() {
             )}
           </button>
 
-          {/* Divider */}
           <div className="relative my-8">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-slate-300 dark:border-slate-600" />
@@ -101,7 +94,6 @@ export default function SignInContent() {
             </div>
           </div>
 
-          {/* Info */}
           <div className="rounded-2xl bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/30 dark:to-amber-950/30 p-4 border border-orange-100 dark:border-orange-900/30 mb-6">
             <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
               <span className="font-semibold text-slate-900 dark:text-white">No account?</span>{" "}
@@ -109,7 +101,6 @@ export default function SignInContent() {
             </p>
           </div>
 
-          {/* Features List */}
           <div className="space-y-3 text-sm">
             {[
               "Analyze harmful content instantly",
@@ -123,7 +114,6 @@ export default function SignInContent() {
             ))}
           </div>
 
-          {/* Legal */}
           <p className="mt-8 text-center text-xs text-slate-500 dark:text-slate-400">
             By signing in, you agree to our{" "}
             <Link href="#" className="text-orange-600 dark:text-orange-400 hover:underline">
@@ -136,7 +126,6 @@ export default function SignInContent() {
           </p>
         </div>
 
-        {/* Footer CTA */}
         <p className="mt-6 text-center text-sm text-slate-600">
           First time here?{" "}
           <Link href="#" className="font-semibold text-orange-600 hover:text-orange-700">

@@ -16,7 +16,7 @@ from backend.config.settings import settings
 
 logger = logging.getLogger(__name__)
 
-# Configure Cloudinary SDK once
+                               
 cloudinary.config(
     cloud_name=settings.CLOUDINARY_CLOUD_NAME,
     api_key=settings.CLOUDINARY_API_KEY,
@@ -26,7 +26,7 @@ cloudinary.config(
 
 
 class CloudinaryService:
-    # ── Upload raw bytes (images) ─────────────────────────────────
+                                                                    
     async def upload_bytes(
         self,
         file_bytes: bytes,
@@ -59,7 +59,7 @@ class CloudinaryService:
             logger.error("Cloudinary upload failed: %s", e)
             return ""
 
-    # ── Upload file path (PDFs) ───────────────────────────────────
+                                                                    
     async def upload_file(
         self,
         file_path: str,

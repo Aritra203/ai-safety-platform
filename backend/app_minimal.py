@@ -25,7 +25,7 @@ from backend.routes.analytics import router as analytics_router
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Flag for status endpoints
+                           
 _db_connected = False
 
 
@@ -34,7 +34,7 @@ async def lifespan(app: FastAPI):
     """Minimal lifespan for fast startup"""
     logger.info("🚀 SafeGuard AI starting...")
     
-    # Connect DB in background (non-blocking)
+                                             
     asyncio.create_task(_connect_db_bg())
     
     logger.info("✅ Startup complete - listening for requests")
@@ -63,12 +63,12 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Register API routes eagerly to avoid startup event/lifespan race conditions.
+                                                                              
 app.include_router(analysis_router, tags=["Analysis"])
 app.include_router(fir_router, tags=["FIR"])
 app.include_router(analytics_router, tags=["Analytics"])
 
-# Middleware
+            
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.ALLOWED_ORIGINS,
@@ -79,7 +79,7 @@ app.add_middleware(
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 
-# System endpoints (no heavy imports)
+                                     
 @app.get("/", tags=["System"])
 async def root():
     """Instant response - app is alive"""

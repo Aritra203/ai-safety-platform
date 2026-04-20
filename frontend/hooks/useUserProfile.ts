@@ -12,7 +12,6 @@ export function useUserProfile() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Only run on client side
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("userProfile");
       if (saved) {

@@ -14,18 +14,18 @@ from backend.models.schemas import (
 )
 from backend.services.analysis_service import AnalysisService
 from backend.services.cloudinary_service import CloudinaryService
-from backend.config.database import get_db
+from backend.config.database import get_db_optional
 from backend.config.settings import settings
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-def get_analysis_service(db=Depends(get_db)) -> AnalysisService:
+def get_analysis_service(db=Depends(get_db_optional)) -> AnalysisService:
     return AnalysisService(db)
 
 
-# ── POST /analyze-text ────────────────────────────────────────────
+                                                                    
 @router.post("/analyze-text", response_model=AnalysisResponse)
 async def analyze_text(
     body: TextAnalysisRequest,
@@ -44,7 +44,7 @@ async def analyze_text(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# ── POST /analyze-image ───────────────────────────────────────────
+                                                                    
 @router.post("/analyze-image", response_model=AnalysisResponse)
 async def analyze_image(
     file: UploadFile = File(...),
@@ -65,7 +65,7 @@ async def analyze_image(
         file_bytes = await file.read()
         logger.info("Image analysis: %s (%d bytes)", file.filename, len(file_bytes))
 
-        # Upload to Cloudinary for evidence storage
+                                                   
         cloudinary_service = CloudinaryService()
         image_url = await cloudinary_service.upload_bytes(
             file_bytes, folder="evidence", filename=file.filename or "upload"
@@ -74,6 +74,8 @@ async def analyze_image(
         result = await service.analyze_image(file_bytes, image_url)
         return result
 
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
     except HTTPException:
         raise
     except Exception as e:
@@ -81,7 +83,7 @@ async def analyze_image(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# ── POST /analyze-context ─────────────────────────────────────────
+                                                                    
 @router.post("/analyze-context", response_model=AnalysisResponse)
 async def analyze_context(
     body: ContextAnalysisRequest,

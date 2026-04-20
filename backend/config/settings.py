@@ -16,14 +16,14 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=[
-            str(PROJECT_ROOT / ".env.local"),  # Load .env.local first (dev)
-            str(PROJECT_ROOT / ".env"),        # Then .env (fallback)
+            str(PROJECT_ROOT / ".env"),                       
+            str(PROJECT_ROOT / ".env.local"),                   
         ],
         env_file_encoding="utf-8",
         extra="ignore",
     )
 
-    # ── App ──────────────────────────────────────────────────────
+                                                                   
     APP_ENV: str = "development"
     DEBUG: bool = False
     ALLOWED_ORIGINS: List[str] = [
@@ -32,35 +32,55 @@ class Settings(BaseSettings):
         "https://safeguard-ai-platform.vercel.app",
     ]
 
-    # ── MongoDB ──────────────────────────────────────────────────
+                                                                   
     MONGODB_URI: str = "mongodb://localhost:27017"
     MONGODB_DB: str = "safeguard_ai"
 
-    # ── Cloudinary ───────────────────────────────────────────────
+                                                                   
     CLOUDINARY_CLOUD_NAME: str = ""
     CLOUDINARY_API_KEY: str = ""
     CLOUDINARY_API_SECRET: str = ""
 
-    # ── Redis / Celery ───────────────────────────────────────────
+                                                                   
     REDIS_URL: str = "redis://localhost:6379/0"
     CELERY_BROKER_URL: str = "redis://localhost:6379/0"
     CELERY_RESULT_BACKEND: str = "redis://localhost:6379/1"
 
-    # ── HuggingFace ──────────────────────────────────────────────
+                                                                   
     HF_MODEL_NAME: str = "microsoft/deberta-v3-base"
     HF_CACHE_DIR: str = "/tmp/hf_cache"
-    HF_DEVICE: str = "cpu"   # "cuda" if GPU available
-    HF_USE_QUANTIZATION: bool = True  # INT8 quantization for 2-3x speedup
+    HF_DEVICE: str = "cpu"                            
+    HF_ENABLE_MODEL: bool = False                                                  
+    HF_USE_QUANTIZATION: bool = True                                      
+    HF_ALLOW_DOWNLOAD: bool = False                                              
     HF_MAX_SEQUENCE_LENGTH: int = 512
     HF_BATCH_SIZE: int = 32
+    EXPLAINABILITY_USE_MODEL: bool = False                                           
 
-    # ── Grooming model ───────────────────────────────────────────
+                                                                   
+                                                
+    HF_ENABLE_GATE_MODEL: bool = False
+    TOXIC_GATE_MODEL_NAME: str = "microsoft/mdeberta-v3-base"
+    TOXIC_GATE_THRESHOLD: float = 0.35
+
+                                                                 
+    HF_ENABLE_MULTILABEL_MODEL: bool = False
+    TOXIC_MULTILABEL_MODEL_NAME: str = "xlm-roberta-large"
+
+                                                                           
+    CONTEXT_LLM_ENABLED: bool = False
+    CONTEXT_LLM_ENDPOINT: str = ""
+    CONTEXT_LLM_MODEL: str = "Qwen/Qwen2.5-7B-Instruct"
+    CONTEXT_LLM_TIMEOUT_MS: int = 4000
+    CONTEXT_ESCALATION_MIN_SCORE: float = 0.55
+
+                                                                   
     GROOMING_MODEL: str = "models/grooming_classifier"
 
-    # ── File upload ──────────────────────────────────────────────
-    MAX_UPLOAD_BYTES: int = 10 * 1024 * 1024  # 10 MB
+                                                                   
+    MAX_UPLOAD_BYTES: int = 10 * 1024 * 1024         
 
-    # ── FIR PDF output dir ───────────────────────────────────────
+                                                                   
     FIR_OUTPUT_DIR: str = "/tmp/fir_pdfs"
 
     @field_validator("ALLOWED_ORIGINS", mode="before")

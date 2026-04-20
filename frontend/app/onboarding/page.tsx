@@ -24,9 +24,6 @@ export default function OnboardingPage() {
   const handleComplete = async () => {
     setLoading(true);
     try {
-      // Here you would typically save the user profile to your backend
-      // For now, we'll just redirect to dashboard
-      // Save profile data to localStorage temporarily
       const userProfile = {
         gender,
         dob,
@@ -54,16 +51,13 @@ export default function OnboardingPage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-orange-50 via-white to-sky-50">
-      {/* Background orbs */}
       <div className="orb left-[-180px] top-[-120px] h-[340px] w-[340px] bg-orange-400/20" />
       <div className="orb right-[-120px] bottom-[10%] h-[260px] w-[260px] bg-sky-300/25" />
 
-      {/* Progress bar */}
       <div className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-400 via-amber-400 to-orange-500 z-50" />
 
       <div className="relative z-10 flex items-center justify-center min-h-screen px-4">
         <div className="w-full max-w-2xl">
-          {/* Header */}
           <div className="flex items-center justify-between mb-12">
             <div>
               <h1 className="text-4xl font-bold text-slate-900 mb-2">
@@ -81,17 +75,13 @@ export default function OnboardingPage() {
             </button>
           </div>
 
-          {/* Cards Grid */}
           <div className="grid md:grid-cols-2 gap-6 mb-8">
-            {/* Profile Card */}
             <div className="glass rounded-3xl border border-white/80 p-8">
               <h2 className="text-xl font-bold text-slate-900 mb-6">Profile</h2>
 
               <div className="space-y-5">
-                {/* Profile Image */}
                 <div className="flex items-center gap-4">
                   {session.user.image && (
-                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={session.user.image}
                       alt={session.user.name || "User"}
@@ -106,7 +96,6 @@ export default function OnboardingPage() {
                   </div>
                 </div>
 
-                {/* Gender */}
                 <div>
                   <label className="block text-sm font-semibold text-slate-900 mb-2">
                     Gender
@@ -124,7 +113,6 @@ export default function OnboardingPage() {
                   </select>
                 </div>
 
-                {/* Date of Birth */}
                 <div>
                   <label className="block text-sm font-semibold text-slate-900 mb-2">
                     Date of Birth
@@ -139,7 +127,6 @@ export default function OnboardingPage() {
               </div>
             </div>
 
-            {/* Organization Card */}
             <div className="glass rounded-3xl border border-white/80 p-8">
               <h2 className="text-xl font-bold text-slate-900 mb-6">
                 Organization
@@ -178,7 +165,6 @@ export default function OnboardingPage() {
             </div>
           </div>
 
-          {/* Features Overview */}
           <div className="glass rounded-3xl border border-white/80 p-8 mb-8">
             <h2 className="text-xl font-bold text-slate-900 mb-6">
               What you can do
@@ -220,7 +206,6 @@ export default function OnboardingPage() {
             </div>
           </div>
 
-          {/* CTA */}
           <div className="flex flex-col sm:flex-row gap-4">
             <button
               onClick={handleComplete}

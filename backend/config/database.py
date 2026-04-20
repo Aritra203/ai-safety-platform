@@ -11,7 +11,7 @@ from backend.config.settings import settings
 logger = logging.getLogger(__name__)
 
 _client: AsyncIOMotorClient | None = None
-db = None  # set on startup
+db = None                  
 _db_ready = False
 
 
@@ -21,19 +21,19 @@ async def connect_db() -> None:
         try:
             _client = AsyncIOMotorClient(
                 settings.MONGODB_URI,
-                serverSelectionTimeoutMS=2000,  # Very short timeout
+                serverSelectionTimeoutMS=2000,                      
                 maxPoolSize=10,
                 connectTimeoutMS=2000,
             )
             db = _client[settings.MONGODB_DB]
             
-            # Try ping with timeout
+                                   
             import asyncio
             try:
                 await asyncio.wait_for(_client.admin.command("ping"), timeout=2.0)
                 logger.info("✅ MongoDB connected")
                 _db_ready = True
-                # Create indexes in background (don't wait)
+                                                           
                 asyncio.create_task(_ensure_indexes())
             except asyncio.TimeoutError:
                 logger.info("⚠️ MongoDB ping timeout - will retry on first request")
@@ -77,7 +77,7 @@ async def get_db():
     global _db_ready
 
     if not _db_ready:
-        # Best-effort reconnect for requests that arrive after DB comes online.
+                                                                               
         await connect_db()
 
     if not _db_ready or db is None:
@@ -85,6 +85,19 @@ async def get_db():
             status_code=503,
             detail="Database unavailable. Start MongoDB or set MONGODB_URI to a reachable instance.",
         )
+
+    return db
+
+
+async def get_db_optional():
+    """Best-effort DB dependency that never raises when Mongo is unavailable."""
+    global _db_ready
+
+    if not _db_ready:
+        await connect_db()
+
+    if not _db_ready or db is None:
+        return None
 
     return db
 

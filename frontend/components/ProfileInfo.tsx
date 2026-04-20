@@ -17,7 +17,6 @@ export default function ProfileInfo({ compact = false }: ProfileInfoProps) {
         <div className="flex items-center gap-3">
           <div className="relative">
             {session.user.image ? (
-              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={session.user.image}
                 alt={session.user.name || "User"}
@@ -43,11 +42,9 @@ export default function ProfileInfo({ compact = false }: ProfileInfoProps) {
       <h2 className="text-xl font-bold text-slate-900 mb-6">Profile Information</h2>
 
       <div className="space-y-6">
-        {/* Profile Section */}
         <div className="flex items-center gap-4 pb-6 border-b border-slate-200">
           <div className="relative">
             {session.user.image ? (
-              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={session.user.image}
                 alt={session.user.name || "User"}

@@ -20,7 +20,7 @@ class XLMRoBERTaAnalyzer:
     Supports: English, Hindi, Bengali, Hinglish + code-switching
     """
     
-    # Hinglish toxic vocabulary
+                               
     HINGLISH_SLANG = {
         'bewakoof': 'fool',
         'chutiya': 'idiot',
@@ -69,7 +69,7 @@ class XLMRoBERTaAnalyzer:
         
         logger.info(f"Loading {model_name}...")
         
-        # Load tokenizer and model
+                                  
         self.tokenizer = AutoTokenizer.from_pretrained(
             model_name,
             cache_dir=cache_dir
@@ -82,7 +82,7 @@ class XLMRoBERTaAnalyzer:
             cache_dir=cache_dir
         )
         
-        # Apply quantization if enabled
+                                       
         if use_quantization:
             self.model = torch.quantization.quantize_dynamic(
                 self.model,
@@ -112,11 +112,11 @@ class XLMRoBERTaAnalyzer:
             primary = 'en'
             confidence = 0.5
         
-        # Check for Devanagari script (Hindi/Bengali)
+                                                     
         devanagari_chars = len(re.findall(r'[\u0900-\u097F]', text))
         latin_chars = len(re.findall(r'[a-zA-Z]+', text))
         
-        # Detect Hinglish (mixed)
+                                 
         if devanagari_chars > 0 and latin_chars > 0:
             detected = 'hinglish'
             is_codemixed = True
@@ -141,9 +141,9 @@ class XLMRoBERTaAnalyzer:
         """
         normalized = text.lower()
         
-        # Replace slang with English equivalents
+                                                
         for hinglish, english in self.HINGLISH_SLANG.items():
-            # Word boundary matching
+                                    
             normalized = re.sub(
                 r'\b' + hinglish + r'\b',
                 english,
@@ -151,9 +151,9 @@ class XLMRoBERTaAnalyzer:
                 flags=re.IGNORECASE
             )
         
-        # Handle common suffixes
-        normalized = re.sub(r'ega\b', 'will', normalized)  # "karega" → "will"
-        normalized = re.sub(r'ungi?\b', 'will', normalized)  # "dungi" → "will"
+                                
+        normalized = re.sub(r'ega\b', 'will', normalized)                     
+        normalized = re.sub(r'ungi?\b', 'will', normalized)                    
         
         return normalized
     
@@ -161,14 +161,14 @@ class XLMRoBERTaAnalyzer:
         """
         Preprocess text based on detected language
         """
-        # Normalize Hinglish
+                            
         if language == 'hinglish':
             text = self.normalize_hinglish(text)
         
-        # Remove extra whitespace
+                                 
         text = ' '.join(text.split())
         
-        # Truncate to model max length
+                                      
         text = text[:512]
         
         return text
@@ -178,14 +178,14 @@ class XLMRoBERTaAnalyzer:
         """
         Binary toxicity classification (toxic/non-toxic)
         """
-        # Detect language
+                         
         lang_info = self.detect_language(text)
         language = lang_info['detected']
         
-        # Preprocess
+                    
         processed_text = self.preprocess_text(text, language)
         
-        # Tokenize
+                  
         tokens = self.tokenizer(
             processed_text,
             truncation=True,
@@ -193,16 +193,16 @@ class XLMRoBERTaAnalyzer:
             return_tensors='pt'
         ).to(self.device)
         
-        # Forward pass
+                      
         outputs = self.model(**tokens)
         
-        # Extract scores
+                        
         logits = outputs.logits[0]
         scores = torch.softmax(logits, dim=-1)
-        toxic_score = scores[1].item()  # Class 1 = toxic
+        toxic_score = scores[1].item()                   
         
-        # Get attention weights for explanation
-        attentions = outputs.attentions[-1][0, -1, :]  # Last layer, last head
+                                               
+        attentions = outputs.attentions[-1][0, -1, :]                         
         
         return {
             'toxic_score': toxic_score,
@@ -226,11 +226,11 @@ class XLMRoBERTaAnalyzer:
         base_score = binary_result['toxic_score']
         language = binary_result['language']
         
-        # Pattern-based scoring for categories
+                                              
         text_lower = text.lower()
         processed = self.preprocess_text(text, language)
         
-        # Category patterns
+                           
         categories = {
             'cyberbullying': {
                 'patterns': ['stupid', 'idiot', 'fool', 'dumb', 'loser', 'hate', 'chutiya', 'gandu'],
@@ -254,18 +254,18 @@ class XLMRoBERTaAnalyzer:
             }
         }
         
-        # Calculate category scores
+                                   
         for category, info in categories.items():
             pattern_matches = sum(1 for p in info['patterns'] if p in text_lower)
             
             if pattern_matches > 0:
-                # Scale by base toxicity score and pattern count
+                                                                
                 categories[category]['score'] = min(
                     0.95,
                     base_score * 0.5 + (pattern_matches / len(info['patterns'])) * 0.5
                 )
             else:
-                categories[category]['score'] = base_score * 0.3  # Lower baseline
+                categories[category]['score'] = base_score * 0.3                  
         
         return {
             'overall_score': base_score,
@@ -281,7 +281,7 @@ class XLMRoBERTaAnalyzer:
         """
         result = self.predict_toxicity_binary(text)
         
-        # Tokenize to get tokens
+                                
         tokens = self.tokenizer(
             text,
             truncation=True,
@@ -291,14 +291,14 @@ class XLMRoBERTaAnalyzer:
         token_ids = tokens['input_ids'][0]
         token_strs = self.tokenizer.convert_ids_to_tokens(token_ids)
         
-        # Get attention weights
+                               
         attention_scores = result['attentions']
         
-        # Normalize attention
+                             
         att_min, att_max = attention_scores.min(), attention_scores.max()
         normalized_att = (attention_scores - att_min) / (att_max - att_min + 1e-8)
         
-        # Map to tokens
+                       
         token_explanations = []
         for token, att_score in zip(token_strs, normalized_att):
             if token not in ['[CLS]', '[SEP]', '[PAD]', '▁']:
@@ -312,19 +312,19 @@ class XLMRoBERTaAnalyzer:
                     )
                 })
         
-        # Sort by importance
+                            
         token_explanations.sort(key=lambda x: x['attention'], reverse=True)
         
         return {
             'toxic_score': result['toxic_score'],
             'label': result['label'],
             'language': result['language'],
-            'top_tokens': token_explanations[:10],  # Top 10 important tokens
+            'top_tokens': token_explanations[:10],                           
             'full_tokens': token_explanations
         }
 
 
-# Alternative: Fine-Tuned Models per Category
+                                             
 class MultiTaskXLMRoBERTa:
     """
     Multi-task learning with shared XLM-RoBERTa + category-specific heads
@@ -339,7 +339,7 @@ class MultiTaskXLMRoBERTa:
         self.base_model_name = base_model
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
-        # Load or create model
+                              
         if checkpoint_path:
             self.model = torch.load(checkpoint_path)
         else:
@@ -351,8 +351,8 @@ class MultiTaskXLMRoBERTa:
     def _build_model(self):
         """Build multi-task model architecture"""
         
-        # Placeholder: In production, implement actual multi-task heads
-        # For now, load base model
+                                                                       
+                                  
         from transformers import AutoModelForSequenceClassification
         
         return AutoModelForSequenceClassification.from_pretrained(
@@ -363,11 +363,11 @@ class MultiTaskXLMRoBERTa:
     @torch.no_grad()
     def predict(self, text: str):
         """Predict all categories"""
-        # Implementation similar to XLMRoBERTaAnalyzer.predict_multilabel
+                                                                         
         pass
 
 
-# FastAPI Integration
+                     
 from fastapi import APIRouter
 
 router = APIRouter(prefix="/api/v1/analysis", tags=["analysis"])
@@ -390,13 +390,13 @@ async def analyze_text(content: dict):
     if not text or len(text.strip()) == 0:
         return {'error': 'Empty content'}, 400
     
-    # Initialize analyzer (should be singleton in production)
+                                                             
     analyzer = XLMRoBERTaAnalyzer(
         model_name="xlm-roberta-large",
         use_quantization=True
     )
     
-    # Predict
+             
     multilabel = analyzer.predict_multilabel(text)
     
     response = {
@@ -409,7 +409,7 @@ async def analyze_text(content: dict):
         'confidence': multilabel['confidence']
     }
     
-    # Add explanation if requested
+                                  
     if content.get('include_explanation'):
         explanation = analyzer.explain_prediction(text)
         response['explanation'] = explanation

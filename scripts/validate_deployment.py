@@ -9,7 +9,7 @@ import os
 import time
 from pathlib import Path
 
-# Add project to path
+                     
 PROJECT_ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
@@ -42,7 +42,7 @@ def validate_imports():
     print("\n✓ STEP 2: Validating Python Imports")
     print("-"*70)
     
-    # Core required modules
+                           
     required_modules = [
         ('torch', 'PyTorch', True),
         ('transformers', 'Transformers', True),
@@ -50,7 +50,7 @@ def validate_imports():
         ('PIL', 'Pillow', True),
     ]
     
-    # Optional modules (nice-to-have but not critical)
+                                                      
     optional_modules = [
         ('easyocr', 'EasyOCR', False),
         ('paddleocr', 'PaddleOCR', False),
@@ -92,7 +92,7 @@ def validate_toxicity_model():
         load_time = time.time() - start
         print(f"  ✅ Model loaded in {load_time:.2f}s")
         
-        # Test inference
+                        
         test_cases = [
             ("Benign", "Hello, how are you?"),
             ("Toxic", "You are stupid"),
@@ -135,7 +135,7 @@ def validate_cache_layer():
             r.ping()
             print(f"  ✅ Redis connection successful")
             
-            # Test cache operations
+                                   
             test_key = "test:validation"
             test_value = "validation_test"
             
@@ -175,7 +175,7 @@ def validate_explainability():
         explainer = ExplainabilityEngine()
         print(f"  ✅ Explainability module loaded")
         
-        # Test token highlighting
+                                 
         test_text = "You are stupid"
         test_scores = {
             "cyberbullying": 0.85,
@@ -204,10 +204,10 @@ def validate_ocr():
         
         print("  ✅ OCR module imports correctly")
         
-        # Check if parallel OCR setup is present
+                                                
         import inspect
         
-        # Check for ThreadPoolExecutor usage
+                                            
         source = inspect.getsource(ocr)
         
         if 'ThreadPoolExecutor' in source or 'concurrent' in source:

@@ -242,11 +242,12 @@ Returns platform-wide stats.
 
 | Component | Model / Method |
 |---|---|
-| Toxicity | `unitary/toxic-bert` (HuggingFace) + rule-based augmentation |
-| Grooming | Custom rule engine with 30+ behavioral pattern regexes |
-| Context | Per-turn scoring + escalation velocity analysis |
-| Multilingual | `langdetect` + custom Hinglish normalization dictionary |
-| OCR | Tesseract 4 with `eng+hin+ben` language packs |
+| Toxic Gate (Stage 1) | `microsoft/mdeberta-v3-base` (optional, high-recall binary gate) |
+| Multi-label Core (Stage 2) | `xlm-roberta-large` (optional multi-label head, fused with deterministic rules) |
+| Grooming | Specialist grooming detector + behavioral rule patterns |
+| Context Escalation (Stage 3) | Optional `Qwen2.5-7B-Instruct` endpoint (JSON-scored, risk-triggered only) |
+| Multilingual | `langdetect` + Hinglish/Indic normalization + obfuscation cleanup |
+| OCR | PaddleOCR primary (optional), EasyOCR fallback (optional), Tesseract tertiary |
 | Explainability | Token-level regex attribution with confidence scores |
 
 ---

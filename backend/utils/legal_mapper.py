@@ -7,7 +7,7 @@ from typing import List
 from backend.models.schemas import LegalMapping, RiskLevel
 
 
-# ── Legal database ────────────────────────────────────────────────
+                                                                    
 LEGAL_DB = {
     "threat": [
         LegalMapping(
@@ -130,7 +130,7 @@ LEGAL_DB = {
     ],
 }
 
-# Threshold: only add law if category score exceeds this
+                                                        
 SCORE_THRESHOLD = 0.25
 
 
@@ -143,14 +143,14 @@ class LegalMapper:
             score = scores.get(category, 0.0)
             if score < SCORE_THRESHOLD:
                 continue
-            # For CRITICAL risk, include all laws; for lower risk, filter by severity
+                                                                                     
             for law in laws:
                 if law.section not in seen_sections:
                     if risk_level in ("CRITICAL", "HIGH") or law.severity in ("HIGH", "CRITICAL"):
                         mappings.append(law)
                         seen_sections.add(law.section)
 
-        # Sort: CRITICAL severity first
+                                       
         severity_order = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3}
         mappings.sort(key=lambda x: severity_order.get(x.severity, 99))
-        return mappings[:6]  # max 6 sections per report
+        return mappings[:6]                             

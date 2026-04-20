@@ -9,7 +9,7 @@ import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-# Ensure project-root modules (e.g., ai_services/) are importable when running from backend/
+                                                                                            
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
@@ -24,7 +24,7 @@ from backend.routes.analysis import router as analysis_router
 from backend.routes.fir import router as fir_router
 from backend.routes.analytics import router as analytics_router
 
-# ── Logging ──────────────────────────────────────────────────────
+                                                                   
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
@@ -32,27 +32,27 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-# ── Lifespan (startup / shutdown) ────────────────────────────────
+                                                                   
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Minimal startup - return immediately"""
     logger.info("🚀 SafeGuard AI starting...")
     
-    # Try to connect to DB in background (don't block)
+                                                      
     import asyncio
     asyncio.create_task(connect_db())
     
     logger.info("✅ Ready (models load on first request)")
     yield
     
-    # Cleanup
+             
     try:
         await disconnect_db()
     except Exception:
         pass
 
 
-# ── App factory ──────────────────────────────────────────────────
+                                                                   
 app = FastAPI(
     title="SafeGuard AI",
     description="AI-powered cyber safety & FIR generation platform",
@@ -62,7 +62,7 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# ── Middleware ───────────────────────────────────────────────────
+                                                                   
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.ALLOWED_ORIGINS,
@@ -72,7 +72,7 @@ app.add_middleware(
 )
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
-# ── Health check ─────────────────────────────────────────────────
+                                                                   
 @app.get("/health", tags=["System"])
 async def health():
     db_ok = is_db_connected()
@@ -94,7 +94,7 @@ async def root():
         "docs": "/docs",
     }
 
-# ── API routes (registered eagerly to prevent 404 race conditions) ───────────
+                                                                               
 app.include_router(analysis_router, tags=["Analysis"])
 app.include_router(fir_router, tags=["FIR"])
 app.include_router(analytics_router, tags=["Analytics"])

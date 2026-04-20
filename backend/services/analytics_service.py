@@ -16,7 +16,7 @@ class AnalyticsService:
             critical = await self.db.analyses.count_documents({"risk_level": "CRITICAL"})
             fir_count = await self.db.fir_reports.count_documents({"status": "finalized"})
 
-            # Daily counts for last 7 days
+                                          
             daily = []
             for i in range(7, 0, -1):
                 day = datetime.utcnow() - timedelta(days=i)
@@ -27,7 +27,7 @@ class AnalyticsService:
                 })
                 daily.append({"date": day_start.strftime("%Y-%m-%d"), "count": count})
 
-            # Category breakdown
+                                
             breakdown = {}
             for cat in ["cyberbullying", "threat", "hate_speech", "sexual_harassment", "grooming"]:
                 breakdown[cat] = await self.db.analyses.count_documents(

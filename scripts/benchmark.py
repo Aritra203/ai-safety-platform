@@ -16,7 +16,7 @@ import json
 import sys
 from pathlib import Path
 
-# Add project to path
+                     
 PROJECT_ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
@@ -76,7 +76,7 @@ class PerformanceBenchmark:
         
         for name, text in test_cases:
             times = []
-            for _ in range(3):  # 3 iterations
+            for _ in range(3):                
                 start = time.time()
                 scores = self.toxicity_clf.classify(text)
                 elapsed = (time.time() - start) * 1000
@@ -181,7 +181,7 @@ class PerformanceBenchmark:
         print("4. CACHE EFFICIENCY (Duplicate Detection)")
         print("-"*70)
         
-        # Simulate cache by measuring same-text latency
+                                                       
         test_text = "You are stupid and I will kill you"
         
         print(f"\n  Test: Analyzing same message 10 times")
@@ -199,7 +199,7 @@ class PerformanceBenchmark:
             elif i == 3:
                 print(f"    ...")
         
-        # In production with Redis, 2-10 would be much faster
+                                                             
         avg_first = sum(times[:1]) / len(times[:1])
         avg_rest = sum(times[1:]) / len(times[1:])
         
@@ -221,7 +221,7 @@ class PerformanceBenchmark:
         print("-"*70)
         
         test_cases = [
-            # (description, text, expected_category, min_score)
+                                                               
             ("Threat detection", "I will kill you", "threat", 0.5),
             ("Bullying detection", "You are stupid and worthless", "cyberbullying", 0.5),
             ("Hate speech detection", "Muslims are terrorists", "hate_speech", 0.4),
@@ -266,7 +266,7 @@ class PerformanceBenchmark:
         print("6. THROUGHPUT ESTIMATION")
         print("-"*70)
         
-        # Simple estimate based on average latency
+                                                  
         avg_latency = self.results.get('toxicity', {}).get('avg_latency_ms', 85)
         
         req_per_sec = 1000 / avg_latency
@@ -293,7 +293,7 @@ class PerformanceBenchmark:
         print("FINAL SUMMARY & RECOMMENDATIONS")
         print("="*70)
         
-        # Latency summary
+                         
         total_latency = (
             self.results.get('toxicity', {}).get('avg_latency_ms', 0) +
             self.results.get('grooming', {}).get('avg_latency_ms', 0) +
@@ -342,7 +342,7 @@ class PerformanceBenchmark:
         print(f"Benchmark complete! Results saved to benchmark_results.json")
         print("="*70 + "\n")
         
-        # Save results
+                      
         with open("benchmark_results.json", "w") as f:
             json.dump(self.results, f, indent=2)
 

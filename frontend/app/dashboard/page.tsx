@@ -44,7 +44,6 @@ export default function DashboardPage() {
   useEffect(() => {
     if (status === "authenticated") {
       wakeBackend().catch(() => {
-        // Silent best-effort warmup to reduce cold-start delays.
       });
     }
   }, [status]);
@@ -89,7 +88,6 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* User Info Badge */}
             {session.user && (
               <ProfileInfo compact={true} />
             )}
@@ -139,7 +137,6 @@ export default function DashboardPage() {
           </section>
         </div>
 
-        {/* FIR History Section */}
         <section className="mt-8 glass rounded-2xl p-6 md:p-8">
           <FIRHistory />
         </section>

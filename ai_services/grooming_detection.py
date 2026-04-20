@@ -16,39 +16,39 @@ from typing import List
 
 logger = logging.getLogger(__name__)
 
-# ── Grooming behavioral patterns ──────────────────────────────────
+                                                                    
 GROOMING_PATTERNS = {
-    # Trust building
+                    
     "trust_building": [
         r"\bi understand you\b", r"\byou can trust me\b", r"\bonly i care\b",
         r"\byour parents don.t understand\b", r"\bour secret\b",
         r"\bspecial friend\b", r"\bno one else gets you\b",
     ],
-    # Isolation tactics
+                       
     "isolation": [
         r"\bdon.t tell (your )?(parents|mom|dad|teacher)\b",
         r"\bkeep this between us\b", r"\bjust between (you and )?me\b",
         r"\bdon.t tell anyone\b", r"\bright\? no one will know\b",
     ],
-    # Age / maturity compliments
+                                
     "maturity_flattery": [
         r"\bso mature for your age\b", r"\byou.re not like other kids\b",
         r"\bvery grown up\b", r"\byou seem older\b",
         r"\b(so|very|really) (smart|beautiful|pretty|handsome) for \d+\b",
     ],
-    # Gift / incentive offering
+                               
     "incentives": [
         r"\bi.ll buy you\b", r"\bsend you (money|gifts|recharge)\b",
         r"\bwant a (gift|present|surprise)\b",
         r"\bi can pay\b", r"\bpaisa dunga\b",
     ],
-    # Sexual desensitization
+                            
     "desensitization": [
         r"\bsend (me )?(your )?(pic|photo|video|selfie)\b",
         r"\bshow me\b", r"\bvideo call karte hai\b",
         r"\bI.ll show you mine\b", r"\bnothing wrong\b",
     ],
-    # Contact escalation
+                        
     "contact_escalation": [
         r"\bwhat.s your (address|school|location)\b",
         r"\bwhere do you live\b", r"\bmeet (me|in person)\b",
@@ -57,7 +57,7 @@ GROOMING_PATTERNS = {
     ],
 }
 
-# Weights for each pattern type
+                               
 PATTERN_WEIGHTS = {
     "trust_building": 0.15,
     "isolation": 0.25,
@@ -81,7 +81,7 @@ class GroomingDetector:
         combined = " ".join(m.text for m in messages)
         base_score = self._compute_score(combined)
 
-        # Escalation bonus: if multiple pattern types hit across messages
+                                                                         
         pattern_types_hit = set()
         for msg in messages:
             for ptype, patterns in GROOMING_PATTERNS.items():
@@ -100,6 +100,6 @@ class GroomingDetector:
             )
             if hits:
                 weight = PATTERN_WEIGHTS[ptype]
-                total += weight * min(hits, 3) / 3  # cap at 3 hits per type
+                total += weight * min(hits, 3) / 3                          
 
         return round(min(total, 1.0), 4)

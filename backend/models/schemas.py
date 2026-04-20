@@ -10,12 +10,12 @@ from pydantic import BaseModel, Field
 import uuid
 
 
-# ── Shared enums ─────────────────────────────────────────────────
+                                                                   
 RiskLevel = Literal["LOW", "MEDIUM", "HIGH", "CRITICAL"]
 MessageRole = Literal["sender", "receiver"]
 
 
-# ── Input models ─────────────────────────────────────────────────
+                                                                   
 class TextAnalysisRequest(BaseModel):
     text: str = Field(..., min_length=1, max_length=10_000)
 
@@ -40,17 +40,17 @@ class FinalizeFIRRequest(BaseModel):
     complainant_name: str
     complainant_contact: str
     complainant_address: Optional[str] = ""
-    accused_name: Optional[str] = ""  # Against whom complaint is filed
-    accused_details: Optional[str] = ""  # Account name, username, profile URL, etc.
+    accused_name: Optional[str] = ""                                   
+    accused_details: Optional[str] = ""                                             
     incident_date: str
-    incident_time: Optional[str] = ""  # Time in IST
-    incident_location: Optional[str] = ""  # Online platform or location
+    incident_time: Optional[str] = ""               
+    incident_location: Optional[str] = ""                               
     additional_info: Optional[str] = ""
     legal_sections: List[str] = []
     evidence_urls: List[str] = []
 
 
-# ── Sub-models ───────────────────────────────────────────────────
+                                                                   
 class ToxicToken(BaseModel):
     token: str
     score: float
@@ -72,7 +72,7 @@ class CategoryScores(BaseModel):
     grooming: float = 0.0
 
 
-# ── Response models ──────────────────────────────────────────────
+                                                                   
 class AnalysisResponse(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     risk_level: RiskLevel

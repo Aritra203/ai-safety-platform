@@ -19,7 +19,7 @@ def check_dependencies():
     """Check if required system packages are installed"""
     print_section("1. CHECKING SYSTEM DEPENDENCIES")
     
-    # Check for Tesseract (cross-platform)
+                                          
     check_cmd = 'where' if sys.platform == 'win32' else 'which'
     result = subprocess.run([check_cmd, 'tesseract'], capture_output=True)
     if result.returncode == 0:
@@ -30,7 +30,7 @@ def check_dependencies():
         print("   macOS: brew install tesseract")
         print("   Windows: Download from https://github.com/UB-Mannheim/tesseract/wiki")
     
-    # Check CUDA
+                
     try:
         import torch
         if torch.cuda.is_available():
@@ -57,7 +57,7 @@ def download_models():
     """Pre-download and cache models locally"""
     print_section("3. DOWNLOADING MODELS")
     
-    # Use platform-appropriate cache directory
+                                              
     if sys.platform == 'win32':
         cache_dir = Path(os.environ.get('USERPROFILE', os.path.expanduser('~'))) / ".cache" / "huggingface"
     else:
@@ -92,7 +92,7 @@ def download_models():
             dtype=torch.qint8
         )
         
-        # Save quantized model
+                              
         torch.save(quantized_model.state_dict(), cache_dir / "xlm-roberta-large-int8.pt")
         print("   ✅ INT8 quantized model saved")
         
@@ -113,36 +113,30 @@ def setup_environment():
     
     env_file = Path(".env")
     
-    # Determine cache directory
+                               
     if sys.platform == 'win32':
         cache_path = os.path.expanduser("~/.cache/huggingface")
     else:
         cache_path = "/models/huggingface"
     
-    env_content = f"""# XLM-RoBERTa Configuration
-HF_MODEL_NAME=xlm-roberta-large
+    env_content = f"""HF_MODEL_NAME=xlm-roberta-large
 HF_DEVICE=cuda
 HF_USE_QUANTIZATION=true
 HF_CACHE_DIR={cache_path}
 
-# OCR Settings
 OCR_USE_PREPROCESSING=true
 OCR_CONFIDENCE_THRESHOLD=0.5
 OCR_FALLBACK_ENGINES=easyocr,paddle,tesseract
 
-# Redis (for caching)
 REDIS_URL=redis://localhost:6379
 CACHE_TTL_DAYS=7
 
-# Batch Processing
 BATCH_SIZE=32
 MAX_BATCH_WAIT_MS=100
 
-# API Configuration
 API_HOST=0.0.0.0
 API_PORT=8000
 
-# Logging
 LOG_LEVEL=INFO
 """
     
@@ -169,15 +163,15 @@ def run_tests():
             use_quantization=True
         )
         
-        # Test 1: English
+                         
         result_en = analyzer.predict_multilabel("I will kill you")
         print(f"   ✅ English: threat={result_en['categories']['threat']:.2f}")
         
-        # Test 2: Hinglish
+                          
         result_hi = analyzer.predict_multilabel("Tujhe marunga")
         print(f"   ✅ Hinglish: threat={result_hi['categories']['threat']:.2f}")
         
-        # Test 3: Multilingual
+                              
         print("   ✅ All tests passed!")
         
     except ImportError as e:
@@ -226,7 +220,7 @@ def print_summary():
     """Print setup summary"""
     print_section("✅ SETUP COMPLETE!")
     
-    # Determine OS-specific instructions
+                                        
     if sys.platform == 'win32':
         redis_cmd = "# Redis on Windows: download from https://github.com/microsoftarchive/redis/releases"
         start_cmd = "python -m uvicorn backend.main:app --reload"

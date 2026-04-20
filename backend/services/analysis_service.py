@@ -40,7 +40,7 @@ from backend.config.settings import settings
 
 logger = logging.getLogger(__name__)
 
-# ── Redis cache (lazy-loaded) ────────────────────────────────────
+                                                                   
 _redis_client = None
 
 def _get_redis():
@@ -57,7 +57,7 @@ def _get_redis():
             _redis_client = False
     return _redis_client if _redis_client is not False else None
 
-# ── Singletons (loaded once on first use) ────────────────────────
+                                                                   
 _toxicity_clf: ToxicityClassifier | None = None
 _grooming_det: GroomingDetector | None = None
 _context_ana: ContextAnalyzer | None = None
@@ -107,10 +107,10 @@ class AnalysisService:
         self.db = db
         self.cache = _get_redis()
 
-    # ── Text analysis with Redis caching ──────────────────────────
+                                                                    
     async def analyze_text(self, text: str) -> AnalysisResponse:
         """Analyze text with cache check (30% latency reduction on duplicates)."""
-        # Check cache first
+                           
         cache_key = self._get_cache_key(text)
         if self.cache:
             cached = self.cache.get(cache_key)
@@ -118,17 +118,17 @@ class AnalysisService:
                 logger.info("Cache hit for text (latency: ~5ms)")
                 return AnalysisResponse.model_validate_json(cached)
         
-        # Run full pipeline
+                           
         result = await asyncio.get_event_loop().run_in_executor(
             None, self._sync_analyze_text, text, None
         )
         
-        # Store in cache (7 day TTL)
+                                    
         if self.cache:
             try:
                 self.cache.setex(
                     cache_key,
-                    60 * 60 * 24 * 7,  # 7 days
+                    60 * 60 * 24 * 7,          
                     result.model_dump_json()
                 )
             except Exception as e:
@@ -143,7 +143,7 @@ class AnalysisService:
         text_hash = hashlib.md5(text.encode()).hexdigest()
         return f"analysis:text:{text_hash}"
 
-    # ── Image analysis ────────────────────────────────────────────
+                                                                    
     async def analyze_image(self, image_bytes: bytes, image_url: str) -> AnalysisResponse:
         from backend.utils.ocr import extract_text_from_image
         extracted_text = await asyncio.get_event_loop().run_in_executor(
@@ -151,7 +151,11 @@ class AnalysisService:
         )
         logger.info("OCR extracted %d chars for image: %s", len(extracted_text.strip()), image_url)
         if not extracted_text.strip():
-            extracted_text = "[No text detected in image]"
+            raise ValueError(
+                "Unable to extract text from image. "
+                "Upload a clearer text image and ensure OCR dependencies are installed "
+                "(Tesseract binary plus easyocr/paddleocr optional fallbacks)."
+            )
 
         result = await asyncio.get_event_loop().run_in_executor(
             None, self._sync_analyze_text, extracted_text, image_url
@@ -160,7 +164,7 @@ class AnalysisService:
         asyncio.create_task(self._persist_async(result))
         return result
 
-    # ── Conversation context analysis ─────────────────────────────
+                                                                    
     async def analyze_context(self, messages: List[ConversationMessage]) -> AnalysisResponse:
         result = await asyncio.get_event_loop().run_in_executor(
             None, self._sync_analyze_context, messages
@@ -168,41 +172,41 @@ class AnalysisService:
         asyncio.create_task(self._persist_async(result))
         return result
 
-    # ── Internal sync pipeline ────────────────────────────────────
+                                                                    
     def _sync_analyze_text(self, text: str, image_url: str | None) -> AnalysisResponse:
         multilingual = _get_multilingual()
         toxicity_clf = _get_toxicity()
         grooming_det = _get_grooming()
         explainer = _get_explainer()
 
-        # 1. Language detection + normalization
+                                               
         lang, normalized_text = multilingual.process(text)
         logger.info("Language: %s | Normalized length: %d", lang, len(normalized_text))
 
-        # 2. Multi-label toxicity scores
+                                        
         scores: dict = toxicity_clf.classify(normalized_text)
 
-        # 3. Grooming check
+                           
         grooming_score = grooming_det.score(normalized_text)
         scores["grooming"] = grooming_score
 
-        # 4. Token-level explainability
+                                       
         toxic_tokens: List[ToxicToken] = explainer.highlight_tokens(
             normalized_text, scores
         )
 
-        # 5. Highlighted HTML
+                             
         highlighted_html = explainer.build_highlighted_html(
             normalized_text, toxic_tokens
         )
 
-        # 6. Risk level
+                       
         risk_level, overall_score = _risk_engine.compute(scores)
 
-        # 7. Legal mapping
+                          
         legal_mappings: List[LegalMapping] = _legal_mapper.map(scores, risk_level)
 
-        # 8. Human-readable explanation
+                                       
         explanation = _build_explanation(scores, risk_level, lang)
 
         result = AnalysisResponse(
@@ -224,15 +228,15 @@ class AnalysisService:
     def _sync_analyze_context(self, messages: List[ConversationMessage]) -> AnalysisResponse:
         context_analyzer = _get_context()
         explainer = _get_explainer()
-        # Merge all texts for baseline toxicity
+                                               
         combined_text = " ".join(m.text for m in messages)
 
-        # Run context-aware scoring (escalation detection)
+                                                          
         ctx_scores = context_analyzer.analyze(messages)
 
-        # Also run base toxicity on combined
+                                            
         baseline = _get_toxicity().classify(combined_text)
-        # Merge: context scores can amplify baseline
+                                                    
         for key in baseline:
             ctx_scores[key] = max(ctx_scores.get(key, 0.0), baseline[key])
 
@@ -263,13 +267,16 @@ class AnalysisService:
 
     async def _persist_async(self, result: AnalysisResponse) -> None:
         """Best-effort MongoDB persistence on the active event loop."""
+        if self.db is None:
+            return
+
         try:
             await self.db.analyses.insert_one(result.model_dump())
         except Exception as e:
             logger.warning("Persistence skipped: %s", e)
 
 
-# ── Helpers ───────────────────────────────────────────────────────
+                                                                    
 def _build_explanation(
     scores: dict,
     risk_level: str,

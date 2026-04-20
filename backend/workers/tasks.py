@@ -10,7 +10,7 @@ from backend.workers.celery_app import celery_app
 logger = logging.getLogger(__name__)
 
 
-# ── Async helper ──────────────────────────────────────────────────
+                                                                    
 def run_async(coro):
     """Run an async coroutine from a sync Celery task."""
     loop = asyncio.new_event_loop()
@@ -20,7 +20,7 @@ def run_async(coro):
         loop.close()
 
 
-# ── Task: Analyze text in background ─────────────────────────────
+                                                                   
 @celery_app.task(
     bind=True,
     name="tasks.analyze_text_async",
@@ -47,7 +47,7 @@ def analyze_text_async(self, text: str, analysis_id: str):
         raise self.retry(exc=exc)
 
 
-# ── Task: Generate FIR PDF in background ─────────────────────────
+                                                                   
 @celery_app.task(
     bind=True,
     name="tasks.generate_fir_async",
@@ -76,7 +76,7 @@ def generate_fir_async(self, fir_payload: dict):
         raise self.retry(exc=exc)
 
 
-# ── Task: Batch image analysis ────────────────────────────────────
+                                                                    
 @celery_app.task(
     bind=True,
     name="tasks.batch_image_analysis",

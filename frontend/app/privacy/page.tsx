@@ -7,7 +7,6 @@ export default function PrivacyPage() {
   return (
     <main className="app-shell grid-bg">
       <div className="mx-auto max-w-4xl px-6 py-20">
-        {/* Back Button */}
         <Link
           href="/"
           className="inline-flex items-center gap-2 mb-8 text-slate-300 hover:text-orange-500 transition"

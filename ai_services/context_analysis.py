@@ -12,7 +12,9 @@ import logging
 import re
 from typing import Dict, List
 
+from ai_services.context_llm import ContextLLMAnalyzer
 from ai_services.toxicity import ToxicityClassifier
+from backend.config.settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +22,7 @@ logger = logging.getLogger(__name__)
 class ContextAnalyzer:
     def __init__(self):
         self._clf = ToxicityClassifier()
+        self._llm = ContextLLMAnalyzer()
 
     def analyze(self, messages) -> Dict[str, float]:
         """
@@ -32,7 +35,7 @@ class ContextAnalyzer:
         texts = [m.text for m in messages]
         n = len(texts)
 
-        # Score each message
+                            
         per_message_scores = []
         for text in texts:
             if text.strip():
@@ -44,7 +47,7 @@ class ContextAnalyzer:
         if not per_message_scores:
             return {}
 
-        # Aggregate
+                   
         categories = ["cyberbullying", "threat", "hate_speech", "sexual_harassment"]
         aggregated: Dict[str, float] = {}
 
@@ -54,11 +57,11 @@ class ContextAnalyzer:
                 aggregated[cat] = 0.0
                 continue
 
-            # Weighted average: later messages weight more (recency bias)
+                                                                         
             weights = [(i + 1) / n for i in range(n)]
             weighted_avg = sum(s * w for s, w in zip(cat_scores, weights)) / sum(weights)
 
-            # Escalation: check if scores rise in second half
+                                                             
             mid = max(1, n // 2)
             early_avg = sum(cat_scores[:mid]) / mid
             late_avg = sum(cat_scores[mid:]) / max(1, len(cat_scores[mid:]))
@@ -66,11 +69,40 @@ class ContextAnalyzer:
 
             aggregated[cat] = round(min(weighted_avg + escalation_bonus, 1.0), 4)
 
+        repeated_target_signal = self._detect_repeated_target(texts)
+        if repeated_target_signal >= 0.5:
+            boost = min(1.0, 0.45 + repeated_target_signal * 0.4)
+            aggregated["cyberbullying"] = round(
+                max(aggregated.get("cyberbullying", 0.0), boost),
+                4,
+            )
+
+                                                                        
+                                                        
+        if self._should_escalate(aggregated, repeated_target_signal):
+            llm_scores = self._llm.analyze(messages)
+            for category, score in llm_scores.items():
+                if category in aggregated:
+                    aggregated[category] = round(max(aggregated[category], score), 4)
+
         return aggregated
+
+    def _should_escalate(self, scores: Dict[str, float], repeated_target_signal: float) -> bool:
+        if not self._llm.enabled:
+            return False
+
+        max_score = max(scores.values()) if scores else 0.0
+        if max_score >= settings.CONTEXT_ESCALATION_MIN_SCORE:
+            return True
+
+        if repeated_target_signal >= 0.6 and scores.get("cyberbullying", 0.0) >= 0.30:
+            return True
+
+        return False
 
     def _detect_repeated_target(self, texts: List[str]) -> float:
         """Check if the same person/username is being targeted repeatedly."""
-        # Simple heuristic: look for @mentions appearing in many messages
+                                                                         
         all_mentions: List[str] = []
         for text in texts:
             mentions = re.findall(r"@\w+", text)
@@ -82,5 +114,5 @@ class ContextAnalyzer:
         from collections import Counter
         counts = Counter(all_mentions)
         most_common_count = counts.most_common(1)[0][1]
-        # If same person appears in >50% of messages, that's a signal
+                                                                     
         return round(min(most_common_count / len(texts), 1.0), 4)

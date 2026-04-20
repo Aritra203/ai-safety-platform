@@ -51,7 +51,6 @@ export default function TextAnalyzer({ onResult, onLoading }: Props) {
         )}
       </div>
 
-      {/* Textarea */}
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
@@ -59,10 +58,8 @@ export default function TextAnalyzer({ onResult, onLoading }: Props) {
         className="w-full min-h-[180px] rounded-xl border border-slate-300 bg-white/85 p-4 text-sm text-slate-700 placeholder-slate-400 resize-none leading-relaxed transition-colors focus:border-orange-400 focus:outline-none"
       />
 
-      {/* Character count */}
       <div className="text-xs text-slate-500 font-mono text-right">{text.length} chars</div>
 
-      {/* Quick examples */}
       <div>
         <p className="text-xs font-mono text-slate-500 mb-2 tracking-[0.12em]">QUICK EXAMPLES</p>
         <div className="flex flex-col gap-1">
@@ -78,7 +75,6 @@ export default function TextAnalyzer({ onResult, onLoading }: Props) {
         </div>
       </div>
 
-      {/* Analyze button */}
       <button
         onClick={handleAnalyze}
         disabled={loading || !text.trim()}

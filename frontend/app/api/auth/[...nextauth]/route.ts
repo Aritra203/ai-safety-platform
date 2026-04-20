@@ -1,8 +1,6 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import NextAuth, { type Session } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import { type JWT } from "next-auth/jwt";
-/* eslint-enable @typescript-eslint/no-unused-vars */
 
 declare module "next-auth" {
   interface Session {
@@ -45,32 +43,26 @@ const handler = NextAuth({
   },
   events: {
     async signIn({ user, isNewUser }) {
-      // Log for debugging
       console.log("User signed in:", { user, isNewUser });
     },
   },
   callbacks: {
     async redirect({ url, baseUrl }) {
-      // Allow relative URLs
       if (url.startsWith("/")) return `${baseUrl}${url}`;
-      // Allow same origin
       else if (new URL(url).origin === baseUrl) return url;
       return baseUrl;
     },
     async jwt({ token, user, account, profile }) {
-      // Store user info on initial sign in
       if (user) {
         token.id = user.id;
         token.name = user.name;
         token.email = user.email;
         token.picture = user.image ?? undefined;
       }
-      // Store provider info
       if (account) {
         token.accessToken = account.access_token;
         token.provider = account.provider;
       }
-      // Store profile info
       if (profile) {
         token.email = profile.email;
         token.name = profile.name;

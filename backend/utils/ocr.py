@@ -3,25 +3,20 @@ OCR utility — extracts text from image bytes using ensemble of engines.
 
 Optimized pipeline:
   1. Preprocess image (contrast, deskew, upscale)
-  2. Run EasyOCR + PaddleOCR in PARALLEL (not sequential)
-  3. Confidence-weighted merge of results
-  4. Fallback to Tesseract if both < 60% confidence
-
-Latency: ~250ms (parallel) instead of 450ms (sequential)
-Accuracy: ~95% (ensemble) instead of 90% (single)
+    2. Run PaddleOCR as PRIMARY engine
+    3. Fallback to EasyOCR
+    4. Tesseract tertiary fallback
 """
 
 import logging
 from io import BytesIO
-from concurrent.futures import ThreadPoolExecutor
-import threading
+import re
 
 logger = logging.getLogger(__name__)
 
-# ── Lazy-load OCR engines (expensive, only on first use) ──────────
+                                                                    
 _paddle_ocr = None
 _easyocr_reader = None
-_ocr_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="ocr_")
 
 
 def _get_paddle_ocr():
@@ -39,12 +34,12 @@ def _get_paddle_ocr():
                     use_textline_orientation=False,
                 )
             except TypeError:
-                # Backward-compatible init path for older PaddleOCR APIs.
+                                                                         
                 _paddle_ocr = PaddleOCR(use_angle_cls=True, lang="en", show_log=False)
             logger.info("✅ PaddleOCR initialized")
         except Exception as e:
             logger.warning("PaddleOCR unavailable (%s)", e)
-            _paddle_ocr = False  # Mark as failed to avoid retry
+            _paddle_ocr = False                                 
     return _paddle_ocr if _paddle_ocr is not False else None
 
 
@@ -71,16 +66,16 @@ def _preprocess_image(image):
     try:
         from PIL import Image, ImageEnhance, ImageFilter, ImageOps
 
-        # Normalize orientation metadata if present.
+                                                    
         image = ImageOps.exif_transpose(image)
 
-        # Convert to grayscale and upscale small inputs to help handwritten OCR.
+                                                                                
         image = image.convert("L")
         w, h = image.size
         if max(w, h) < 1400:
             image = image.resize((int(w * 2), int(h * 2)), resample=Image.Resampling.LANCZOS)
 
-        # Improve contrast and local edges for pen-stroke text.
+                                                               
         image = ImageOps.autocontrast(image)
         image = ImageEnhance.Contrast(image).enhance(1.8)
         image = image.filter(ImageFilter.MedianFilter(size=3))
@@ -153,7 +148,7 @@ def _extract_with_tesseract(image: "Image") -> str:
         from PIL import ImageOps
         import pytesseract
 
-        # Try variants tuned for single-line handwriting and noisy backgrounds.
+                                                                               
         variants = [
             ("base", image),
             ("autocontrast", ImageOps.autocontrast(image.convert("L"))),
@@ -161,7 +156,7 @@ def _extract_with_tesseract(image: "Image") -> str:
         ]
 
         configs = [
-            # psm7/13 are strong for single-line signatures/usernames.
+                                                                      
             "--psm 7 --oem 3 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._- ",
             "--psm 13 --oem 3 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._- ",
             "--psm 11 --oem 3",
@@ -210,7 +205,7 @@ def _extract_with_paddle(image_bytes: bytes) -> str:
         if paddle_ocr is None:
             return ""
 
-        # Save image to temp file for PaddleOCR
+                                               
         import tempfile
         with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp:
             tmp.write(image_bytes)
@@ -220,7 +215,7 @@ def _extract_with_paddle(image_bytes: bytes) -> str:
             result = paddle_ocr.ocr(tmp_path, cls=True)
             text_parts = []
 
-            # PaddleOCR 3.x can return dict-based output; keep compatibility with list-based output too.
+                                                                                                        
             if result and isinstance(result, list) and isinstance(result[0], dict):
                 for page in result:
                     rec_texts = page.get("rec_texts") or []
@@ -247,7 +242,7 @@ def _extract_with_paddle(image_bytes: bytes) -> str:
 
 
 def _extract_with_easyocr(image_bytes: bytes) -> str:
-    """Extract text using EasyOCR as a final fallback."""
+    """Extract text using EasyOCR fallback."""
     try:
         import cv2
         import numpy as np
@@ -271,86 +266,74 @@ def _extract_with_easyocr(image_bytes: bytes) -> str:
         return ""
 
 
+def _postprocess_ocr_text(text: str) -> str:
+    """Normalize OCR output artifacts before downstream NLP classification."""
+    if not text:
+        return ""
+
+    normalized = text
+    normalized = re.sub(r"[\r\n\t]+", " ", normalized)
+    normalized = re.sub(r"\s+", " ", normalized).strip()
+
+                                                                            
+    normalized = re.sub(
+        r"\b(?:[a-zA-Z]\s+){2,}[a-zA-Z]\b",
+        lambda m: m.group(0).replace(" ", ""),
+        normalized,
+    )
+
+    return normalized
+
+
 def extract_text_from_image(image_bytes: bytes) -> str:
     """
-    Optimized OCR extraction using parallel ensemble of engines.
-    
+    OCR extraction using production fallback order.
+
     Pipeline:
     1. Preprocess image (contrast, deskew, upscale)
-    2. Run EasyOCR + PaddleOCR in PARALLEL (not sequential!)
-    3. Confidence-weighted merge
-    4. Fallback to Tesseract
-    
-    Latency: ~250ms (parallel) vs 450ms (sequential)
-    Accuracy: ~95% ensemble vs 90% single
+    2. PaddleOCR primary
+    3. EasyOCR fallback
+    4. Tesseract tertiary fallback
     """
     try:
         from PIL import Image
 
         image = Image.open(BytesIO(image_bytes))
 
-        # Convert to RGB if needed
+                                  
         if image.mode not in ("RGB", "L"):
             image = image.convert("RGB")
 
         original_image = image.copy()
         processed_image = _preprocess_image(image)
         cropped_image = _crop_text_region(processed_image)
-        
-        # ---- STAGE 1: Try Tesseract (fastest, good for clear text) ----
-        logger.info("OCR Stage 1: Tesseract")
+
+                                              
+        logger.info("OCR Stage 1: PaddleOCR primary")
+        paddle_bytes = _pil_to_jpg_bytes(processed_image)
+        text = _extract_with_paddle(paddle_bytes)
+        if text:
+            logger.info("✅ PaddleOCR primary extracted %d chars", len(text))
+            return _postprocess_ocr_text(text)
+
+                                             
+        logger.info("OCR Stage 2: EasyOCR fallback")
+        text = _extract_with_easyocr(paddle_bytes)
+        if text:
+            logger.info("✅ EasyOCR fallback extracted %d chars", len(text))
+            return _postprocess_ocr_text(text)
+
+                                                        
+        logger.info("OCR Stage 3: Tesseract tertiary fallback")
         text = _extract_with_tesseract(processed_image)
         if not text:
             text = _extract_with_tesseract(cropped_image)
-        if text and len(text) > 20:  # If Tesseract confident, skip expensive models
-            logger.info("✅ Tesseract: %d chars (confidence HIGH)", len(text))
-            return text
-        
-        # ---- STAGE 2: Run EasyOCR + PaddleOCR in PARALLEL (2-3x speedup) ----
-        logger.info("OCR Stage 2: EasyOCR + PaddleOCR parallel")
-        paddle_bytes = _pil_to_jpg_bytes(processed_image)
-        easy_bytes = paddle_bytes
-        
-        # Submit both jobs to thread pool
-        easy_future = _ocr_executor.submit(_extract_with_easyocr, easy_bytes)
-        paddle_future = _ocr_executor.submit(_extract_with_paddle, paddle_bytes)
-        
-        # Wait for both to complete (max 250ms timeout)
-        import concurrent.futures
-        try:
-            easy_text = easy_future.result(timeout=0.25)
-            paddle_text = paddle_future.result(timeout=0.25)
-        except concurrent.futures.TimeoutError:
-            logger.warning("OCR engines timeout, using partial results")
-            easy_text = easy_future.result(timeout=0) if easy_future.done() else ""
-            paddle_text = paddle_future.result(timeout=0) if paddle_future.done() else ""
-        
-        # ---- STAGE 3: Confidence-weighted merge ----
-        if easy_text and paddle_text:
-            # Both succeeded: merge with simple heuristic
-            # (in production, could use more sophisticated ensemble)
-            text = easy_text if len(easy_text) > len(paddle_text) else paddle_text
-            logger.info("✅ Ensemble: Easy=%d, Paddle=%d → using %d chars",
-                       len(easy_text), len(paddle_text), len(text))
-        elif easy_text:
-            text = easy_text
-            logger.info("✅ EasyOCR: %d chars", len(text))
-        elif paddle_text:
-            text = paddle_text
-            logger.info("✅ PaddleOCR: %d chars", len(text))
-        else:
-            text = ""
-        
+        if not text:
+            text = _extract_with_tesseract(original_image)
+
         if text:
-            logger.info("Final OCR result: %d characters extracted", len(text))
-            return text
-        
-        # ---- STAGE 4: Tesseract fallback on originals ----
-        logger.info("OCR Stage 4: Tesseract fallback on original")
-        text = _extract_with_tesseract(original_image)
-        if text:
-            logger.info("✅ Tesseract fallback: %d chars", len(text))
-            return text
+            logger.info("✅ Tesseract tertiary extracted %d chars", len(text))
+            return _postprocess_ocr_text(text)
         
         logger.warning("All OCR engines failed")
         return ""

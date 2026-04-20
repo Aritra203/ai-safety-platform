@@ -10,8 +10,9 @@ import html
 from typing import Dict, List
 
 from backend.models.schemas import ToxicToken
+from backend.config.settings import settings
 
-# ── Token patterns per category (ordered by priority) ────────────
+                                                                   
 TOKEN_PATTERNS: Dict[str, List[tuple]] = {
     "threat": [
         (r"\b(kill|murder|hurt|attack|destroy|maarenge|jaan se)\b", 0.9),
@@ -49,30 +50,39 @@ class ExplainabilityEngine:
         """Initialize with optional DeBERTa model for attention-based attribution."""
         self.model = None
         self.tokenizer = None
-        self._load_attribution_model()
+        self._model_attempted = False
     
     def _load_attribution_model(self):
         """Lazy-load DeBERTa for attention-based token attribution."""
+        self._model_attempted = True
+        if not settings.EXPLAINABILITY_USE_MODEL:
+            return
+
         try:
             from transformers import AutoTokenizer, AutoModelForSequenceClassification
-            from backend.config.settings import settings
             import torch
+            local_only = not settings.HF_ALLOW_DOWNLOAD
             
             self.tokenizer = AutoTokenizer.from_pretrained(
                 settings.HF_MODEL_NAME,
                 cache_dir=settings.HF_CACHE_DIR,
+                local_files_only=local_only,
             )
             self.model = AutoModelForSequenceClassification.from_pretrained(
                 settings.HF_MODEL_NAME,
                 cache_dir=settings.HF_CACHE_DIR,
                 num_labels=2,
                 output_attentions=True,
+                local_files_only=local_only,
             ).eval()
         except Exception:
-            pass  # Fall back to pattern-based highlighting
+            pass                                           
     
     def get_attention_attribution(self, text: str) -> Dict[str, float]:
         """Extract token importance from DeBERTa attention weights."""
+        if not self._model_attempted:
+            self._load_attribution_model()
+
         if not self.model or not self.tokenizer:
             return {}
         
@@ -87,14 +97,14 @@ class ExplainabilityEngine:
                 )
                 outputs = self.model(**inputs)
                 
-                # Average attention across all layers and heads
-                attention = outputs.attentions[-1][0]  # [heads, seq_len, seq_len]
-                aggregated = attention.mean(dim=0)  # [seq_len, seq_len]
+                                                               
+                attention = outputs.attentions[-1][0]                             
+                aggregated = attention.mean(dim=0)                      
                 
-                # Get importance from [CLS] token
+                                                 
                 cls_attention = aggregated[0, :].cpu().numpy()
                 
-                # Map to tokens
+                               
                 tokens = self.tokenizer.tokenize(text[:512])
                 token_importance = {}
                 for i, token in enumerate(tokens):
@@ -118,7 +128,7 @@ class ExplainabilityEngine:
         found: List[ToxicToken] = []
         seen_spans: set = set()
 
-        # Get attention weights for scoring boost
+                                                 
         attention_weights = self.get_attention_attribution(text)
 
         for category, pattern_list in TOKEN_PATTERNS.items():
@@ -131,11 +141,11 @@ class ExplainabilityEngine:
                     if span not in seen_spans:
                         seen_spans.add(span)
 
-                        # Combine pattern score + attention weight
+                                                                  
                         attention_boost = 1.0
                         matched_token = match.group().lower()
                         if matched_token in attention_weights:
-                            # Scale attention (0-1 range) as multiplier (0.8-1.2 range)
+                                                                                       
                             attention_boost = 1.0 + (attention_weights[matched_token] * 0.2)
 
                         token_score = round(
@@ -149,9 +159,9 @@ class ExplainabilityEngine:
                             )
                         )
 
-        # Sort by score descending and keep top 15
+                                                  
         found.sort(key=lambda x: x.score, reverse=True)
-        return found[:15]  # max 15 highlights
+        return found[:15]                     
 
     def build_highlighted_html(
         self, text: str, toxic_tokens: List[ToxicToken]
@@ -163,7 +173,7 @@ class ExplainabilityEngine:
         if not toxic_tokens:
             return html.escape(text)
 
-        # Build replacement map: (start, end) → replacement
+                                                           
         replacements: List[tuple] = []
         for token_obj in toxic_tokens:
             pattern = re.escape(token_obj.token)
@@ -182,13 +192,13 @@ class ExplainabilityEngine:
         if not replacements:
             return html.escape(text)
 
-        # Apply replacements from right to left to preserve positions
+                                                                     
         replacements.sort(key=lambda x: x[0], reverse=True)
         result = list(text)
         used_ranges: List[tuple] = []
 
         for start, end, repl in replacements:
-            # Check for overlap
+                               
             overlap = any(s < end and start < e for s, e in used_ranges)
             if not overlap:
                 result[start:end] = list(repl)

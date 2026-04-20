@@ -28,12 +28,10 @@ export default function SignUpPage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-orange-50 via-white to-sky-50 flex items-center justify-center px-4">
-      {/* Background orbs */}
       <div className="orb left-[-180px] top-[-120px] h-[340px] w-[340px] bg-orange-400/20" />
       <div className="orb right-[-120px] bottom-[10%] h-[260px] w-[260px] bg-sky-300/25" />
 
       <div className="relative z-10 w-full max-w-md">
-        {/* Back Button */}
         <Link
           href="/"
           className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-900 mb-8"
@@ -42,9 +40,7 @@ export default function SignUpPage() {
           Back to Home
         </Link>
 
-        {/* Card */}
         <div className="glass rounded-3xl border border-white/80 p-8 md:p-10 shadow-[0_20px_60px_rgba(0,0,0,0.08)]">
-          {/* Logo */}
           <div className="mb-8 flex justify-center">
             <div className="hero-ring">
               <div className="flex h-12 w-12 items-center justify-center">
@@ -65,7 +61,6 @@ export default function SignUpPage() {
             </div>
           </div>
 
-          {/* Heading */}
           <h1 className="text-center text-3xl font-bold text-slate-900 mb-2">
             Create Account
           </h1>
@@ -73,7 +68,6 @@ export default function SignUpPage() {
             Join SafeGuard to protect communities from harmful content
           </p>
 
-          {/* Benefits */}
           <div className="bg-gradient-to-r from-orange-50 to-amber-50 rounded-2xl p-4 border border-orange-100 mb-6">
             <ul className="space-y-2 text-xs text-slate-700">
               <li className="flex items-center gap-2">
@@ -91,7 +85,6 @@ export default function SignUpPage() {
             </ul>
           </div>
 
-          {/* Google Sign Up Button */}
           <button
             onClick={handleGoogleSignUp}
             disabled={loading}
@@ -127,7 +120,6 @@ export default function SignUpPage() {
           </p>
         </div>
 
-        {/* Footer Note */}
         <p className="mt-8 text-center text-xs text-slate-500">
           We&apos;ll never share your information with third parties
         </p>

@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 
 export const middleware = withAuth(
   function middleware(req) {
-    // Allow public routes
     if (
       req.nextUrl.pathname === "/" ||
       req.nextUrl.pathname.startsWith("/auth/")
@@ -11,13 +10,11 @@ export const middleware = withAuth(
       return NextResponse.next();
     }
 
-    // Protect private routes
     if (
       req.nextUrl.pathname.startsWith("/dashboard") ||
       req.nextUrl.pathname.startsWith("/analytics") ||
       req.nextUrl.pathname.startsWith("/onboarding")
     ) {
-      // token will be truthy if user is authenticated
       return NextResponse.next();
     }
 
@@ -26,7 +23,6 @@ export const middleware = withAuth(
   {
     callbacks: {
       authorized: ({ token, req }) => {
-        // Allow public and auth routes without token
         if (
           req.nextUrl.pathname === "/" ||
           req.nextUrl.pathname.startsWith("/auth/")
@@ -34,7 +30,6 @@ export const middleware = withAuth(
           return true;
         }
 
-        // Require token for protected routes
         if (
           req.nextUrl.pathname.startsWith("/dashboard") ||
           req.nextUrl.pathname.startsWith("/analytics") ||

@@ -75,7 +75,6 @@ export default function Navbar() {
                 className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-orange-600 to-amber-500 p-0.5"
               >
                 {session.user.image ? (
-                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={session.user.image}
                     alt={session.user.name || "User"}
@@ -88,7 +87,6 @@ export default function Navbar() {
                 )}
               </button>
 
-              {/* User Menu Dropdown */}
               {userMenuOpen && (
                 <div className="absolute right-0 mt-2 w-56 rounded-2xl bg-white shadow-lg border border-slate-200 overflow-hidden">
                   <div className="p-4 border-b border-slate-200">
