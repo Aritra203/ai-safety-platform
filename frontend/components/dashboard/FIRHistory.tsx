@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Download, FileText, Calendar, User, AlertCircle, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
-import { downloadFIR, getFIRHistory } from "@/services/api";
+import { downloadFIR, firHistoryUpdatedEventName, getFIRHistory } from "@/services/api";
 
 interface FIRItem {
   fir_id: string;
@@ -24,7 +24,16 @@ export default function FIRHistory() {
   const [totalCount, setTotalCount] = useState(0);
 
   useEffect(() => {
-    fetchFIRHistory();
+    const refresh = () => {
+      void fetchFIRHistory();
+    };
+
+    refresh();
+    window.addEventListener(firHistoryUpdatedEventName, refresh);
+
+    return () => {
+      window.removeEventListener(firHistoryUpdatedEventName, refresh);
+    };
   }, []);
 
   const fetchFIRHistory = async () => {

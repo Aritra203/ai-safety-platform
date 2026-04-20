@@ -119,4 +119,4 @@ async def get_fir_history(
         return await service.get_fir_history(limit=limit, skip=skip)
     except Exception as e:
         logger.exception("FIR history fetch failed")
-        return {"firs": [], "total": 0}
+        raise HTTPException(status_code=500, detail=str(e))

@@ -342,34 +342,38 @@ class FIRService:
             "pdf_url": 1,
         }
 
-        async def _fetch_page():
-            pipeline = [
-                {
-                    "$addFields": {
-                        "_sort_ts": {"$ifNull": ["$created_at", "$finalized_at"]}
-                    }
-                },
-                {"$sort": {"_sort_ts": -1}},
-                {"$skip": skip},
-                {"$limit": limit},
-                {
-                    "$project": {
-                        **projection,
-                        "_sort_ts": 0,
-                    }
-                },
-            ]
-            cursor = self.db.fir_reports.aggregate(pipeline)
+        async def _fetch_page() -> list[dict]:
+            cursor = (
+                self.db.fir_reports.find({}, projection)
+                .sort([
+                    ("created_at", -1),
+                    ("finalized_at", -1),
+                    ("fir_id", -1),
+                ])
+                .skip(skip)
+                .limit(limit)
+            )
             return await cursor.to_list(length=limit)
 
-        async def _fetch_total():
+        async def _fetch_total() -> int:
             try:
                 # Faster than full count on large collections.
                 return await self.db.fir_reports.estimated_document_count()
             except Exception:
                 return await self.db.fir_reports.count_documents({})
 
-        firs, total = await asyncio.gather(_fetch_page(), _fetch_total())
+        try:
+            firs, total = await asyncio.gather(_fetch_page(), _fetch_total())
+        except Exception as e:
+            logger.warning("Primary FIR history query failed; using fallback query: %s", e)
+            firs = await (
+                self.db.fir_reports.find({}, projection)
+                .sort("fir_id", -1)
+                .skip(skip)
+                .limit(limit)
+                .to_list(length=limit)
+            )
+            total = await self.db.fir_reports.count_documents({})
 
         def _to_datetime(value):
             if isinstance(value, datetime):
@@ -394,25 +398,32 @@ class FIRService:
                                     
         history_items = []
         for fir in firs:
-            created_at = _to_datetime(fir.get("created_at")) or datetime.utcnow()
-            finalized_at = _to_datetime(fir.get("finalized_at"))
-            incident_date = fir.get("incident_date")
-            if isinstance(incident_date, datetime):
-                incident_date = incident_date.date().isoformat()
-            elif incident_date is None:
-                incident_date = "—"
+            try:
+                created_at = (
+                    _to_datetime(fir.get("created_at"))
+                    or _to_datetime(fir.get("finalized_at"))
+                    or datetime.utcnow()
+                )
+                finalized_at = _to_datetime(fir.get("finalized_at"))
+                incident_date = fir.get("incident_date")
+                if isinstance(incident_date, datetime):
+                    incident_date = incident_date.date().isoformat()
+                elif incident_date is None:
+                    incident_date = "—"
 
-            history_items.append({
-                "fir_id": str(fir.get("fir_id") or ""),
-                "status": str(fir.get("status", "draft")),
-                "complainant_name": str(fir.get("complainant_name") or "—"),
-                "accused_name": str(fir.get("accused_name")) if fir.get("accused_name") else None,
-                "incident_date": str(incident_date),
-                "incident_location": str(fir.get("incident_location")) if fir.get("incident_location") else None,
-                "created_at": created_at,
-                "finalized_at": finalized_at,
-                "pdf_url": str(fir.get("pdf_url")) if fir.get("pdf_url") else None,
-            })
+                history_items.append({
+                    "fir_id": str(fir.get("fir_id") or ""),
+                    "status": str(fir.get("status", "draft")),
+                    "complainant_name": str(fir.get("complainant_name") or "—"),
+                    "accused_name": str(fir.get("accused_name")) if fir.get("accused_name") else None,
+                    "incident_date": str(incident_date),
+                    "incident_location": str(fir.get("incident_location")) if fir.get("incident_location") else None,
+                    "created_at": created_at,
+                    "finalized_at": finalized_at,
+                    "pdf_url": str(fir.get("pdf_url")) if fir.get("pdf_url") else None,
+                })
+            except Exception as item_error:
+                logger.warning("Skipping malformed FIR history record: %s", item_error)
         
         return {"firs": history_items, "total": total}
 

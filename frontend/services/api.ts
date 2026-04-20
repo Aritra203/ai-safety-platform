@@ -3,6 +3,7 @@ import { AnalysisResult, ConversationMessage } from "@/types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 const API_TIMEOUT_MS = Number(process.env.NEXT_PUBLIC_API_TIMEOUT_MS || 180000);
+const FIR_HISTORY_UPDATED_EVENT = "fir-history-updated";
 
 const api = axios.create({
   baseURL: API_BASE,
@@ -57,6 +58,9 @@ export async function generateFIR(
   analysisId: string
 ): Promise<{ fir_id: string }> {
   const { data } = await api.post("/generate-fir", { analysis_id: analysisId });
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent(FIR_HISTORY_UPDATED_EVENT));
+  }
   return data;
 }
 
@@ -76,6 +80,9 @@ export async function generateFIRPDF(payload: {
   evidence_urls: string[];
 }): Promise<{ fir_id: string; pdf_url: string; status: string }> {
   const { data } = await api.post("/finalize-fir", payload);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent(FIR_HISTORY_UPDATED_EVENT));
+  }
   return data;
 }
 
@@ -87,6 +94,8 @@ export async function getFIRHistory(limit: number = 50, skip: number = 0) {
   const { data } = await api.get("/fir-history", { params: { limit, skip } });
   return data;
 }
+
+export const firHistoryUpdatedEventName = FIR_HISTORY_UPDATED_EVENT;
 
 export async function fetchAnalytics() {
   const { data } = await api.get("/analytics");
