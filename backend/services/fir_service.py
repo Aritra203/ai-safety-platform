@@ -27,6 +27,8 @@ from backend.services.cloudinary_service import CloudinaryService
 
 logger = logging.getLogger(__name__)
 
+_EPHEMERAL_FIR_DOWNLOADS: dict[str, tuple[str | None, str | None]] = {}
+
 
 def get_ist_now():
     """Get current time in IST (UTC+5:30)"""
@@ -113,6 +115,8 @@ class FIRService:
             public_id=data.fir_id,
         )
 
+        _EPHEMERAL_FIR_DOWNLOADS[data.fir_id] = (str(pdf_path), pdf_url or None)
+
         if self.db is not None:
             await self.db.fir_reports.update_one(
                 {"fir_id": data.fir_id},
@@ -148,9 +152,20 @@ class FIRService:
     async def get_fir_download_targets(self, fir_id: str) -> tuple[str | None, str | None]:
         """Return local PDF path and cloud URL for download fallback handling."""
         if self.db is None:
-            raise ValueError("FIR download requires database persistence")
+            cached = _EPHEMERAL_FIR_DOWNLOADS.get(fir_id)
+            if cached:
+                return cached
+
+            local_path = str(self._ensure_output_dir() / f"{fir_id}.pdf")
+            if os.path.exists(local_path):
+                return local_path, None
+
+            raise ValueError("FIR download not available in non-persistent mode")
         record = await self.db.fir_reports.find_one({"fir_id": fir_id})
         if not record:
+            cached = _EPHEMERAL_FIR_DOWNLOADS.get(fir_id)
+            if cached:
+                return cached
             raise ValueError(f"FIR {fir_id} not found")
 
         pdf_path = record.get("pdf_path")

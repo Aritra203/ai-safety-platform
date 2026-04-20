@@ -74,8 +74,9 @@ export async function generateFIRPDF(payload: {
   additional_info?: string;
   legal_sections: string[];
   evidence_urls: string[];
-}): Promise<void> {
-  await api.post("/finalize-fir", payload);
+}): Promise<{ fir_id: string; pdf_url: string; status: string }> {
+  const { data } = await api.post("/finalize-fir", payload);
+  return data;
 }
 
 export function downloadFIR(firId: string): void {

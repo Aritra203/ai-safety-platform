@@ -26,6 +26,7 @@ export default function FIRModal({ firId, result, onClose }: Props) {
   });
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
   const handleSubmit = async () => {
     if (!form.complainant_name || !form.complainant_contact) {
@@ -35,13 +36,14 @@ export default function FIRModal({ firId, result, onClose }: Props) {
 
     setSubmitting(true);
     try {
-      await generateFIRPDF({
+      const finalized = await generateFIRPDF({
         fir_id: firId,
         analysis_id: result.id,
         ...form,
         legal_sections: result.legal_mappings.map((mapping) => `${mapping.law} ${mapping.section}`),
         evidence_urls: result.image_url ? [result.image_url] : [],
       });
+      setPdfUrl(finalized.pdf_url || null);
       setSubmitted(true);
       toast.success("FIR report finalized");
     } catch (error) {
@@ -229,7 +231,13 @@ export default function FIRModal({ firId, result, onClose }: Props) {
             <div className="mt-6 flex flex-wrap justify-center gap-3">
               <button
                 type="button"
-                onClick={() => downloadFIR(firId)}
+                onClick={() => {
+                  if (pdfUrl) {
+                    window.open(pdfUrl, "_blank");
+                    return;
+                  }
+                  downloadFIR(firId);
+                }}
                 className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-orange-600 to-amber-500 px-5 py-3 text-sm font-bold text-white"
               >
                 <Download size={15} />
