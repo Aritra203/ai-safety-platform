@@ -7,10 +7,12 @@ import asyncio
 import logging
 import os
 import tempfile
+import time
 from io import BytesIO
 
 import cloudinary
 import cloudinary.uploader
+import cloudinary.utils
 
 from backend.config.settings import settings
 
@@ -98,4 +100,31 @@ class CloudinaryService:
             return url
         except Exception as e:
             logger.error("Cloudinary file upload failed: %s", e)
+            return ""
+
+    def build_signed_raw_download_url(
+        self,
+        public_id: str,
+        expires_in_seconds: int = 3600,
+        filename: str | None = None,
+    ) -> str:
+        """
+        Build a signed URL for raw asset download.
+        Useful when direct raw URLs return 401 due account delivery restrictions.
+        """
+        try:
+            expires_at = int(time.time()) + max(expires_in_seconds, 60)
+            url = cloudinary.utils.private_download_url(
+                public_id,
+                "pdf",
+                resource_type="raw",
+                type="upload",
+                expires_at=expires_at,
+                attachment=True,
+                filename=filename,
+            )
+            logger.info("Cloudinary signed raw download URL generated for: %s", public_id)
+            return url
+        except Exception as e:
+            logger.warning("Failed to generate signed Cloudinary URL for %s: %s", public_id, e)
             return ""

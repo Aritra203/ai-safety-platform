@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Download, FileText, Calendar, User, AlertCircle, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
-import { getFIRHistory } from "@/services/api";
+import { downloadFIR, getFIRHistory } from "@/services/api";
 
 interface FIRItem {
   fir_id: string;
@@ -43,21 +43,9 @@ export default function FIRHistory() {
     }
   };
 
-  const downloadFIR = async (firId: string) => {
+  const handleDownloadFIR = (firId: string) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/download-fir/${firId}`);
-      if (!response.ok) throw new Error("Download failed");
-      
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `FIR_${firId}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      toast.success("FIR downloaded successfully");
+      downloadFIR(firId);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to download FIR";
       toast.error(message);
@@ -188,7 +176,7 @@ export default function FIRHistory() {
                 <td className="px-4 py-3 text-center">
                   {fir.status === "finalized" ? (
                     <button
-                      onClick={() => downloadFIR(fir.fir_id)}
+                      onClick={() => handleDownloadFIR(fir.fir_id)}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-orange-600 hover:bg-orange-50 rounded transition"
                       title="Download PDF"
                     >

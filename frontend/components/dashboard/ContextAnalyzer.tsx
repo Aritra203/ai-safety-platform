@@ -1,12 +1,12 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Plus, Trash2, Loader2, MessageSquare } from "lucide-react";
 import { analyzeContext } from "@/services/api";
 import { AnalysisResult, ConversationMessage } from "@/types";
 import toast from "react-hot-toast";
 
 interface Props {
-  onResult: (r: AnalysisResult) => void;
+  onResult: (r: AnalysisResult | null) => void;
   onLoading: (l: boolean) => void;
 }
 
@@ -15,6 +15,14 @@ export default function ContextAnalyzer({ onResult, onLoading }: Props) {
     { role: "sender", text: "" },
   ]);
   const [loading, setLoading] = useState(false);
+  const mountedRef = useRef(true);
+  const requestSeqRef = useRef(0);
+
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const addMessage = () => {
     setMessages((prev) => [
@@ -41,16 +49,33 @@ export default function ContextAnalyzer({ onResult, onLoading }: Props) {
       toast.error("Please add at least 2 messages for context analysis");
       return;
     }
+
+    const runId = ++requestSeqRef.current;
     setLoading(true);
     onLoading(true);
+    onResult(null);
+
     try {
       const result = await analyzeContext(validMessages);
+
+      if (!mountedRef.current || runId !== requestSeqRef.current) {
+        return;
+      }
+
       onResult(result);
       toast.success("Context analysis complete");
     } catch (err) {
+      if (!mountedRef.current || runId !== requestSeqRef.current) {
+        return;
+      }
+
       const message = err instanceof Error ? err.message : "Analysis failed";
       toast.error(message);
     } finally {
+      if (!mountedRef.current || runId !== requestSeqRef.current) {
+        return;
+      }
+
       setLoading(false);
       onLoading(false);
     }

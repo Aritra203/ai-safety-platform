@@ -1,12 +1,12 @@
 "use client";
-import { useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Upload, Image, Loader2, X } from "lucide-react";
 import { analyzeImage } from "@/services/api";
 import { AnalysisResult } from "@/types";
 import toast from "react-hot-toast";
 
 interface Props {
-  onResult: (r: AnalysisResult) => void;
+  onResult: (r: AnalysisResult | null) => void;
   onLoading: (l: boolean) => void;
 }
 
@@ -16,6 +16,14 @@ export default function ImageAnalyzer({ onResult, onLoading }: Props) {
   const [loading, setLoading] = useState(false);
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const mountedRef = useRef(true);
+  const requestSeqRef = useRef(0);
+
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const handleFile = (f: File) => {
     if (!f.type.startsWith("image/")) {
@@ -35,18 +43,35 @@ export default function ImageAnalyzer({ onResult, onLoading }: Props) {
 
   const handleAnalyze = async () => {
     if (!file) return;
+
+    const runId = ++requestSeqRef.current;
     setLoading(true);
     onLoading(true);
+    onResult(null);
+
     try {
       const formData = new FormData();
       formData.append("file", file);
       const result = await analyzeImage(formData);
+
+      if (!mountedRef.current || runId !== requestSeqRef.current) {
+        return;
+      }
+
       onResult(result);
       toast.success("Image analyzed successfully");
     } catch (err) {
+      if (!mountedRef.current || runId !== requestSeqRef.current) {
+        return;
+      }
+
       const message = err instanceof Error ? err.message : "Image analysis failed";
       toast.error(message);
     } finally {
+      if (!mountedRef.current || runId !== requestSeqRef.current) {
+        return;
+      }
+
       setLoading(false);
       onLoading(false);
     }

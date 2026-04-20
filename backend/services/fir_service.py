@@ -154,7 +154,15 @@ class FIRService:
         if self.db is None:
             cached = _EPHEMERAL_FIR_DOWNLOADS.get(fir_id)
             if cached:
-                return cached
+                pdf_path, pdf_url = cached
+                if pdf_url and "res.cloudinary.com" in str(pdf_url):
+                    signed_url = CloudinaryService().build_signed_raw_download_url(
+                        public_id=f"fir_reports/{fir_id}",
+                        filename=f"FIR_{fir_id}.pdf",
+                    )
+                    if signed_url:
+                        pdf_url = signed_url
+                return pdf_path, pdf_url
 
             local_path = str(self._ensure_output_dir() / f"{fir_id}.pdf")
             if os.path.exists(local_path):
@@ -165,11 +173,29 @@ class FIRService:
         if not record:
             cached = _EPHEMERAL_FIR_DOWNLOADS.get(fir_id)
             if cached:
-                return cached
+                pdf_path, pdf_url = cached
+                if pdf_url and "res.cloudinary.com" in str(pdf_url):
+                    signed_url = CloudinaryService().build_signed_raw_download_url(
+                        public_id=f"fir_reports/{fir_id}",
+                        filename=f"FIR_{fir_id}.pdf",
+                    )
+                    if signed_url:
+                        pdf_url = signed_url
+                return pdf_path, pdf_url
             raise ValueError(f"FIR {fir_id} not found")
 
         pdf_path = record.get("pdf_path")
         pdf_url = record.get("pdf_url")
+
+        # If only Cloudinary URL is available, prefer a signed URL to avoid 401 on raw PDF delivery.
+        if pdf_url and "res.cloudinary.com" in str(pdf_url):
+            signed_url = CloudinaryService().build_signed_raw_download_url(
+                public_id=f"fir_reports/{fir_id}",
+                filename=f"FIR_{fir_id}.pdf",
+            )
+            if signed_url:
+                pdf_url = signed_url
+
         if not pdf_path and not pdf_url:
             raise ValueError(f"PDF for FIR {fir_id} not ready")
 

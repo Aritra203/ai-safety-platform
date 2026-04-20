@@ -1,12 +1,12 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Send, Loader2, X } from "lucide-react";
 import { analyzeText } from "@/services/api";
 import { AnalysisResult } from "@/types";
 import toast from "react-hot-toast";
 
 interface Props {
-  onResult: (r: AnalysisResult) => void;
+  onResult: (r: AnalysisResult | null) => void;
   onLoading: (l: boolean) => void;
 }
 
@@ -19,22 +19,46 @@ const QUICK_EXAMPLES = [
 export default function TextAnalyzer({ onResult, onLoading }: Props) {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
+  const mountedRef = useRef(true);
+  const requestSeqRef = useRef(0);
+
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const handleAnalyze = async () => {
     if (!text.trim()) {
       toast.error("Please enter some text to analyze");
       return;
     }
+    const runId = ++requestSeqRef.current;
     setLoading(true);
     onLoading(true);
+    onResult(null);
+
     try {
       const result = await analyzeText(text);
+
+      if (!mountedRef.current || runId !== requestSeqRef.current) {
+        return;
+      }
+
       onResult(result);
       toast.success("Analysis complete");
     } catch (err) {
+      if (!mountedRef.current || runId !== requestSeqRef.current) {
+        return;
+      }
+
       const message = err instanceof Error ? err.message : "Analysis failed";
       toast.error(message);
     } finally {
+      if (!mountedRef.current || runId !== requestSeqRef.current) {
+        return;
+      }
+
       setLoading(false);
       onLoading(false);
     }
