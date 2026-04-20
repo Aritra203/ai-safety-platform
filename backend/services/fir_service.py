@@ -59,14 +59,25 @@ class FIRService:
             self.output_dir = fallback_dir
         return self.output_dir
 
+    @staticmethod
+    def _new_fir_id() -> str:
+        return f"FIR-{datetime.utcnow().strftime('%Y%m%d')}-{uuid.uuid4().hex[:8].upper()}"
+
                                                                     
     async def create_fir_record(self, analysis_id: str) -> str:
-                                
+        if self.db is None:
+            fir_id = self._new_fir_id()
+            logger.warning(
+                "MongoDB unavailable; generating ephemeral FIR id without persistence: %s",
+                fir_id,
+            )
+            return fir_id
+
         analysis = await self.db.analyses.find_one({"id": analysis_id})
         if not analysis:
             raise ValueError(f"Analysis {analysis_id} not found")
 
-        fir_id = f"FIR-{datetime.utcnow().strftime('%Y%m%d')}-{uuid.uuid4().hex[:8].upper()}"
+        fir_id = self._new_fir_id()
 
         await self.db.fir_reports.insert_one({
             "fir_id": fir_id,
@@ -81,11 +92,13 @@ class FIRService:
 
                                                                     
     async def generate_fir_pdf(self, data: FinalizeFIRRequest) -> str:
-        fir_record = await self.db.fir_reports.find_one({"fir_id": data.fir_id})
-        if not fir_record:
-            raise ValueError(f"FIR {data.fir_id} not found")
-
-        analysis = await self.db.analyses.find_one({"id": data.analysis_id})
+        fir_record = None
+        analysis = None
+        if self.db is not None:
+            fir_record = await self.db.fir_reports.find_one({"fir_id": data.fir_id})
+            analysis = await self.db.analyses.find_one({"id": data.analysis_id})
+        else:
+            logger.warning("MongoDB unavailable; finalizing FIR in non-persistent mode")
 
         output_dir = self._ensure_output_dir()
         pdf_path = output_dir / f"{data.fir_id}.pdf"
@@ -100,29 +113,33 @@ class FIRService:
             public_id=data.fir_id,
         )
 
-                          
-        await self.db.fir_reports.update_one(
-            {"fir_id": data.fir_id},
-            {"$set": {
-                "status": "finalized",
-                "pdf_path": str(pdf_path),
-                "pdf_url": pdf_url,
-                "complainant_name": data.complainant_name,
-                "complainant_contact": data.complainant_contact,
-                "complainant_address": data.complainant_address,
-                "accused_name": data.accused_name,
-                "accused_details": data.accused_details,
-                "incident_date": data.incident_date,
-                "incident_time": data.incident_time,
-                "incident_location": data.incident_location,
-                "finalized_at": datetime.utcnow(),
-            }},
-        )
+        if self.db is not None:
+            await self.db.fir_reports.update_one(
+                {"fir_id": data.fir_id},
+                {"$set": {
+                    "status": "finalized",
+                    "analysis_id": data.analysis_id,
+                    "pdf_path": str(pdf_path),
+                    "pdf_url": pdf_url,
+                    "complainant_name": data.complainant_name,
+                    "complainant_contact": data.complainant_contact,
+                    "complainant_address": data.complainant_address,
+                    "accused_name": data.accused_name,
+                    "accused_details": data.accused_details,
+                    "incident_date": data.incident_date,
+                    "incident_time": data.incident_time,
+                    "incident_location": data.incident_location,
+                    "finalized_at": datetime.utcnow(),
+                }},
+                upsert=True,
+            )
         logger.info("FIR finalized: %s → %s", data.fir_id, pdf_url)
         return pdf_url
 
                                                                     
     async def get_fir_pdf_path(self, fir_id: str) -> str:
+        if self.db is None:
+            raise ValueError("FIR download requires database persistence")
         record = await self.db.fir_reports.find_one({"fir_id": fir_id})
         if not record or not record.get("pdf_path"):
             raise ValueError(f"PDF for FIR {fir_id} not ready")
@@ -130,6 +147,8 @@ class FIRService:
 
     async def get_fir_download_targets(self, fir_id: str) -> tuple[str | None, str | None]:
         """Return local PDF path and cloud URL for download fallback handling."""
+        if self.db is None:
+            raise ValueError("FIR download requires database persistence")
         record = await self.db.fir_reports.find_one({"fir_id": fir_id})
         if not record:
             raise ValueError(f"FIR {fir_id} not found")
@@ -144,6 +163,9 @@ class FIRService:
                                                                    
     async def get_fir_history(self, limit: int = 50, skip: int = 0):
         """Fetch FIR history sorted by creation date (newest first)"""
+        if self.db is None:
+            return {"firs": [], "total": 0}
+
         limit = max(1, min(limit, 100))
         skip = max(0, skip)
 
