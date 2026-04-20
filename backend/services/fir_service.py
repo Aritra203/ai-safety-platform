@@ -10,6 +10,7 @@ import uuid
 from datetime import datetime, timedelta
 from datetime import timezone
 from pathlib import Path
+from urllib.parse import urlparse
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
@@ -66,6 +67,74 @@ class FIRService:
     @staticmethod
     def _new_fir_id() -> str:
         return f"FIR-{datetime.utcnow().strftime('%Y%m%d')}-{uuid.uuid4().hex[:8].upper()}"
+
+    @staticmethod
+    def _cloudinary_public_id_candidates(fir_id: str, pdf_url: str | None) -> list[str]:
+        """Derive likely Cloudinary raw public_id values for signed download."""
+        candidates: list[str] = []
+
+        if pdf_url and "res.cloudinary.com" in pdf_url:
+            try:
+                path = urlparse(str(pdf_url)).path
+                marker = "/raw/upload/"
+                if marker in path:
+                    tail = path.split(marker, 1)[1].lstrip("/")
+                    parts = [p for p in tail.split("/") if p]
+
+                    # Strip Cloudinary version segment, e.g. v1776713217
+                    if parts and parts[0].startswith("v") and parts[0][1:].isdigit():
+                        parts = parts[1:]
+
+                    parsed_public_id = "/".join(parts)
+                    if parsed_public_id:
+                        candidates.append(parsed_public_id)
+                        if parsed_public_id.lower().endswith(".pdf"):
+                            candidates.append(parsed_public_id[:-4])
+                        else:
+                            candidates.append(f"{parsed_public_id}.pdf")
+            except Exception:
+                # Keep fallback candidates below.
+                pass
+
+        # Fallback patterns used across historical uploads.
+        candidates.extend([
+            f"fir_reports/{fir_id}.pdf",
+            f"fir_reports/{fir_id}",
+            f"{fir_id}.pdf",
+            fir_id,
+        ])
+
+        seen: set[str] = set()
+        ordered: list[str] = []
+        for candidate in candidates:
+            if candidate and candidate not in seen:
+                seen.add(candidate)
+                ordered.append(candidate)
+        return ordered
+
+    def _prefer_signed_cloudinary_url(self, fir_id: str, pdf_url: str | None) -> str | None:
+        if not pdf_url or "res.cloudinary.com" not in str(pdf_url):
+            return pdf_url
+
+        cloudinary_service = CloudinaryService()
+        candidates = self._cloudinary_public_id_candidates(fir_id, str(pdf_url))
+
+        validated_candidates = [
+            candidate
+            for candidate in candidates
+            if cloudinary_service.raw_resource_exists(candidate)
+        ]
+
+        # Prefer known-existing resources; fall back to heuristic order if lookup fails.
+        for public_id in (validated_candidates or candidates):
+            signed_url = cloudinary_service.build_signed_raw_download_url(
+                public_id=public_id,
+                filename=f"FIR_{fir_id}.pdf",
+            )
+            if signed_url:
+                return signed_url
+
+        return pdf_url
 
                                                                     
     async def create_fir_record(self, analysis_id: str) -> str:
@@ -246,13 +315,7 @@ class FIRService:
             cached = _EPHEMERAL_FIR_DOWNLOADS.get(fir_id)
             if cached:
                 pdf_path, pdf_url = cached
-                if pdf_url and "res.cloudinary.com" in str(pdf_url):
-                    signed_url = CloudinaryService().build_signed_raw_download_url(
-                        public_id=f"fir_reports/{fir_id}",
-                        filename=f"FIR_{fir_id}.pdf",
-                    )
-                    if signed_url:
-                        pdf_url = signed_url
+                pdf_url = self._prefer_signed_cloudinary_url(fir_id, pdf_url)
                 return pdf_path, pdf_url
 
             local_path = str(self._ensure_output_dir() / f"{fir_id}.pdf")
@@ -265,27 +328,15 @@ class FIRService:
             cached = _EPHEMERAL_FIR_DOWNLOADS.get(fir_id)
             if cached:
                 pdf_path, pdf_url = cached
-                if pdf_url and "res.cloudinary.com" in str(pdf_url):
-                    signed_url = CloudinaryService().build_signed_raw_download_url(
-                        public_id=f"fir_reports/{fir_id}",
-                        filename=f"FIR_{fir_id}.pdf",
-                    )
-                    if signed_url:
-                        pdf_url = signed_url
+                pdf_url = self._prefer_signed_cloudinary_url(fir_id, pdf_url)
                 return pdf_path, pdf_url
             raise ValueError(f"FIR {fir_id} not found")
 
         pdf_path = record.get("pdf_path")
         pdf_url = record.get("pdf_url")
 
-        # If only Cloudinary URL is available, prefer a signed URL to avoid 401 on raw PDF delivery.
-        if pdf_url and "res.cloudinary.com" in str(pdf_url):
-            signed_url = CloudinaryService().build_signed_raw_download_url(
-                public_id=f"fir_reports/{fir_id}",
-                filename=f"FIR_{fir_id}.pdf",
-            )
-            if signed_url:
-                pdf_url = signed_url
+        # Prefer signed Cloudinary URL to avoid 401 on raw PDF delivery.
+        pdf_url = self._prefer_signed_cloudinary_url(fir_id, pdf_url)
 
         if not pdf_path and not pdf_url:
             raise ValueError(f"PDF for FIR {fir_id} not ready")

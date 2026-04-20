@@ -11,6 +11,7 @@ import time
 from io import BytesIO
 
 import cloudinary
+import cloudinary.api
 import cloudinary.uploader
 import cloudinary.utils
 
@@ -28,6 +29,14 @@ cloudinary.config(
 
 
 class CloudinaryService:
+    def raw_resource_exists(self, public_id: str) -> bool:
+        """Check whether a raw upload resource exists in Cloudinary."""
+        try:
+            cloudinary.api.resource(public_id, resource_type="raw", type="upload")
+            return True
+        except Exception:
+            return False
+
                                                                     
     async def upload_bytes(
         self,
