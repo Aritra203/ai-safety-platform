@@ -29,6 +29,7 @@ from backend.services.cloudinary_service import CloudinaryService
 logger = logging.getLogger(__name__)
 
 _EPHEMERAL_FIR_DOWNLOADS: dict[str, tuple[str | None, str | None]] = {}
+_EPHEMERAL_FIR_RECORDS: dict[str, dict] = {}
 
 
 def get_ist_now():
@@ -70,6 +71,16 @@ class FIRService:
     async def create_fir_record(self, analysis_id: str) -> str:
         if self.db is None:
             fir_id = self._new_fir_id()
+            _EPHEMERAL_FIR_RECORDS[fir_id] = {
+                "fir_id": fir_id,
+                "analysis_id": analysis_id,
+                "status": "draft",
+                "created_at": datetime.utcnow(),
+                "pdf_path": None,
+                "pdf_url": None,
+                "complainant_name": "—",
+                "incident_date": "—",
+            }
             logger.warning(
                 "MongoDB unavailable; generating ephemeral FIR id without persistence: %s",
                 fir_id,
@@ -97,6 +108,7 @@ class FIRService:
     async def generate_fir_pdf(self, data: FinalizeFIRRequest) -> str:
         fir_record = None
         analysis = None
+        now_utc = datetime.utcnow()
         if self.db is not None:
             fir_record = await self.db.fir_reports.find_one({"fir_id": data.fir_id})
             analysis = await self.db.analyses.find_one({"id": data.analysis_id})
@@ -117,29 +129,96 @@ class FIRService:
         )
 
         _EPHEMERAL_FIR_DOWNLOADS[data.fir_id] = (str(pdf_path), pdf_url or None)
+        _EPHEMERAL_FIR_RECORDS.setdefault(
+            data.fir_id,
+            {
+                "fir_id": data.fir_id,
+                "analysis_id": data.analysis_id,
+                "created_at": now_utc,
+            },
+        )
+        _EPHEMERAL_FIR_RECORDS[data.fir_id].update({
+            "status": "finalized",
+            "analysis_id": data.analysis_id,
+            "pdf_path": str(pdf_path),
+            "pdf_url": pdf_url,
+            "complainant_name": data.complainant_name,
+            "complainant_contact": data.complainant_contact,
+            "complainant_address": data.complainant_address,
+            "accused_name": data.accused_name,
+            "accused_details": data.accused_details,
+            "incident_date": data.incident_date,
+            "incident_time": data.incident_time,
+            "incident_location": data.incident_location,
+            "finalized_at": now_utc,
+        })
 
         if self.db is not None:
+            created_at_value = (
+                fir_record.get("created_at")
+                if fir_record and fir_record.get("created_at")
+                else _EPHEMERAL_FIR_RECORDS[data.fir_id].get("created_at", now_utc)
+            )
             await self.db.fir_reports.update_one(
                 {"fir_id": data.fir_id},
-                {"$set": {
-                    "status": "finalized",
-                    "analysis_id": data.analysis_id,
-                    "pdf_path": str(pdf_path),
-                    "pdf_url": pdf_url,
-                    "complainant_name": data.complainant_name,
-                    "complainant_contact": data.complainant_contact,
-                    "complainant_address": data.complainant_address,
-                    "accused_name": data.accused_name,
-                    "accused_details": data.accused_details,
-                    "incident_date": data.incident_date,
-                    "incident_time": data.incident_time,
-                    "incident_location": data.incident_location,
-                    "finalized_at": datetime.utcnow(),
-                }},
+                {
+                    "$set": {
+                        "status": "finalized",
+                        "analysis_id": data.analysis_id,
+                        "pdf_path": str(pdf_path),
+                        "pdf_url": pdf_url,
+                        "complainant_name": data.complainant_name,
+                        "complainant_contact": data.complainant_contact,
+                        "complainant_address": data.complainant_address,
+                        "accused_name": data.accused_name,
+                        "accused_details": data.accused_details,
+                        "incident_date": data.incident_date,
+                        "incident_time": data.incident_time,
+                        "incident_location": data.incident_location,
+                        "finalized_at": now_utc,
+                    },
+                    "$setOnInsert": {
+                        "created_at": created_at_value,
+                    },
+                },
                 upsert=True,
             )
         logger.info("FIR finalized: %s → %s", data.fir_id, pdf_url)
         return pdf_url
+
+    async def _sync_ephemeral_records_to_db(self) -> None:
+        if self.db is None or not _EPHEMERAL_FIR_RECORDS:
+            return
+
+        for fir_id, record in list(_EPHEMERAL_FIR_RECORDS.items()):
+            try:
+                created_at_value = record.get("created_at") or datetime.utcnow()
+                await self.db.fir_reports.update_one(
+                    {"fir_id": fir_id},
+                    {
+                        "$set": {
+                            "status": record.get("status", "draft"),
+                            "analysis_id": record.get("analysis_id"),
+                            "pdf_path": record.get("pdf_path"),
+                            "pdf_url": record.get("pdf_url"),
+                            "complainant_name": record.get("complainant_name"),
+                            "complainant_contact": record.get("complainant_contact"),
+                            "complainant_address": record.get("complainant_address"),
+                            "accused_name": record.get("accused_name"),
+                            "accused_details": record.get("accused_details"),
+                            "incident_date": record.get("incident_date"),
+                            "incident_time": record.get("incident_time"),
+                            "incident_location": record.get("incident_location"),
+                            "finalized_at": record.get("finalized_at"),
+                        },
+                        "$setOnInsert": {
+                            "created_at": created_at_value,
+                        },
+                    },
+                    upsert=True,
+                )
+            except Exception as e:
+                logger.warning("Failed to sync ephemeral FIR %s: %s", fir_id, e)
 
                                                                     
     async def get_fir_pdf_path(self, fir_id: str) -> str:
@@ -205,11 +284,39 @@ class FIRService:
                                                                    
     async def get_fir_history(self, limit: int = 50, skip: int = 0):
         """Fetch FIR history sorted by creation date (newest first)"""
-        if self.db is None:
-            return {"firs": [], "total": 0}
-
         limit = max(1, min(limit, 100))
         skip = max(0, skip)
+
+        if self.db is None:
+            records = sorted(
+                _EPHEMERAL_FIR_RECORDS.values(),
+                key=lambda item: item.get("created_at") or datetime.min,
+                reverse=True,
+            )
+            page = records[skip: skip + limit]
+            history_items = []
+            for fir in page:
+                incident_date = fir.get("incident_date")
+                if isinstance(incident_date, datetime):
+                    incident_date = incident_date.date().isoformat()
+                elif incident_date is None:
+                    incident_date = "—"
+
+                history_items.append({
+                    "fir_id": str(fir.get("fir_id") or ""),
+                    "status": str(fir.get("status", "draft")),
+                    "complainant_name": str(fir.get("complainant_name") or "—"),
+                    "accused_name": str(fir.get("accused_name")) if fir.get("accused_name") else None,
+                    "incident_date": str(incident_date),
+                    "incident_location": str(fir.get("incident_location")) if fir.get("incident_location") else None,
+                    "created_at": fir.get("created_at") or datetime.utcnow(),
+                    "finalized_at": fir.get("finalized_at"),
+                    "pdf_url": str(fir.get("pdf_url")) if fir.get("pdf_url") else None,
+                })
+
+            return {"firs": history_items, "total": len(records)}
+
+        await self._sync_ephemeral_records_to_db()
 
         projection = {
             "_id": 0,
@@ -225,13 +332,23 @@ class FIRService:
         }
 
         async def _fetch_page():
-            cursor = (
-                self.db.fir_reports
-                .find({}, projection)
-                .sort("created_at", -1)
-                .skip(skip)
-                .limit(limit)
-            )
+            pipeline = [
+                {
+                    "$addFields": {
+                        "_sort_ts": {"$ifNull": ["$created_at", "$finalized_at"]}
+                    }
+                },
+                {"$sort": {"_sort_ts": -1}},
+                {"$skip": skip},
+                {"$limit": limit},
+                {
+                    "$project": {
+                        **projection,
+                        "_sort_ts": 0,
+                    }
+                },
+            ]
+            cursor = self.db.fir_reports.aggregate(pipeline)
             return await cursor.to_list(length=limit)
 
         async def _fetch_total():
