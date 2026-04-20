@@ -87,9 +87,13 @@ class FIRService:
             )
             return fir_id
 
-        analysis = await self.db.analyses.find_one({"id": analysis_id})
-        if not analysis:
-            raise ValueError(f"Analysis {analysis_id} not found")
+        analysis = None
+        # Analysis persistence can be asynchronous; wait briefly before degrading.
+        for _ in range(4):
+            analysis = await self.db.analyses.find_one({"id": analysis_id})
+            if analysis:
+                break
+            await asyncio.sleep(0.25)
 
         fir_id = self._new_fir_id()
 
@@ -97,10 +101,17 @@ class FIRService:
             "fir_id": fir_id,
             "analysis_id": analysis_id,
             "status": "draft",
+            "analysis_found": bool(analysis),
             "created_at": datetime.utcnow(),
             "pdf_path": None,
             "pdf_url": None,
         })
+        if not analysis:
+            logger.warning(
+                "Analysis %s not found after retry; created FIR %s in degraded mode",
+                analysis_id,
+                fir_id,
+            )
         logger.info("FIR record created: %s", fir_id)
         return fir_id
 
