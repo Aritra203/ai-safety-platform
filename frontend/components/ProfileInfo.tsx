@@ -13,7 +13,7 @@ export default function ProfileInfo({ compact = false }: ProfileInfoProps) {
 
   if (compact) {
     return (
-      <div className="glass rounded-2xl border border-white/80 p-4 md:min-w-fit">
+      <div className="glass rounded-2xl border border-white/80 p-4 md:min-w-fit dark:border-slate-700/60 dark:bg-slate-800/50">
         <div className="flex items-center gap-3">
           <div className="relative">
             {session.user.image ? (
@@ -29,8 +29,8 @@ export default function ProfileInfo({ compact = false }: ProfileInfoProps) {
             )}
           </div>
           <div className="text-sm">
-            <p className="font-semibold text-slate-900">{session.user.name}</p>
-            <p className="text-xs text-slate-600">{session.user.email}</p>
+            <p className="font-semibold text-slate-900 dark:text-white">{session.user.name}</p>
+            <p className="text-xs text-slate-600 dark:text-slate-400">{session.user.email}</p>
           </div>
         </div>
       </div>
@@ -38,11 +38,11 @@ export default function ProfileInfo({ compact = false }: ProfileInfoProps) {
   }
 
   return (
-    <div className="glass rounded-3xl border border-white/80 p-6 md:p-8">
-      <h2 className="text-xl font-bold text-slate-900 mb-6">Profile Information</h2>
+    <div className="glass rounded-3xl border border-white/80 p-6 md:p-8 dark:border-slate-700/60 dark:bg-slate-800/50">
+      <h2 className="mb-6 text-xl font-bold text-slate-900 dark:text-white">Profile Information</h2>
 
       <div className="space-y-6">
-        <div className="flex items-center gap-4 pb-6 border-b border-slate-200">
+        <div className="flex items-center gap-4 border-b border-slate-200 pb-6 dark:border-slate-700">
           <div className="relative">
             {session.user.image ? (
               <img
@@ -57,8 +57,8 @@ export default function ProfileInfo({ compact = false }: ProfileInfoProps) {
             )}
           </div>
           <div>
-            <p className="text-lg font-bold text-slate-900">{session.user.name}</p>
-            <p className="text-sm text-slate-600">{session.user.email}</p>
+            <p className="text-lg font-bold text-slate-900 dark:text-white">{session.user.name}</p>
+            <p className="text-sm text-slate-600 dark:text-slate-400">{session.user.email}</p>
           </div>
         </div>
 

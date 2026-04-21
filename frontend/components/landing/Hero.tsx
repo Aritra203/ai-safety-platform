@@ -100,7 +100,7 @@ export default function Hero() {
             {["Explainable AI", "OCR + Visual Analysis", "POCSO/IPC Mapping", "Hinglish & Bengali Ready"].map((chip) => (
               <span
                 key={chip}
-                className="rounded-full border border-slate-300/90 bg-white/70 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-600"
+                className="rounded-full border border-slate-300/90 bg-white/70 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-600 dark:border-slate-600 dark:bg-slate-800/60 dark:text-slate-300"
               >
                 {chip}
               </span>
@@ -111,26 +111,26 @@ export default function Hero() {
         <div className="relative z-10">
           <div className="glass noise scanline rounded-[30px] p-6 md:p-7">
             <div className="mb-4 flex items-center justify-between">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Live Command Feed</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">Live Command Feed</p>
               <div className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.15em] text-emerald-700">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                 Online
               </div>
             </div>
 
-            <div className="space-y-3 rounded-2xl border border-slate-200/80 bg-white/90 p-4 text-sm">
-              <div className="flex items-start gap-3 rounded-xl bg-rose-50 p-3">
+            <div className="space-y-3 rounded-2xl border border-slate-200/80 bg-white/90 p-4 text-sm dark:border-slate-700 dark:bg-slate-800/60">
+              <div className="flex items-start gap-3 rounded-xl bg-rose-50 p-3 dark:bg-rose-900/20">
                 <Siren size={18} className="mt-0.5 text-rose-600" />
                 <div>
-                  <p className="font-semibold text-slate-900">Critical threat detected in conversation thread</p>
-                  <p className="text-xs text-slate-600">Confidence: 96% • Triggered sections: IPC 503, IT Act 66D</p>
+                  <p className="font-semibold text-slate-900 dark:text-white">Critical threat detected in conversation thread</p>
+                  <p className="text-xs text-slate-600 dark:text-slate-300">Confidence: 96% • Triggered sections: IPC 503, IT Act 66D</p>
                 </div>
               </div>
-              <div className="flex items-start gap-3 rounded-xl bg-amber-50 p-3">
+              <div className="flex items-start gap-3 rounded-xl bg-amber-50 p-3 dark:bg-amber-900/20">
                 <BadgeCheck size={18} className="mt-0.5 text-amber-700" />
                 <div>
-                  <p className="font-semibold text-slate-900">FIR draft generated with legal mapping</p>
-                  <p className="text-xs text-slate-600">Evidence links + timestamps preserved for chain of custody.</p>
+                  <p className="font-semibold text-slate-900 dark:text-white">FIR draft generated with legal mapping</p>
+                  <p className="text-xs text-slate-600 dark:text-slate-300">Evidence links + timestamps preserved for chain of custody.</p>
                 </div>
               </div>
             </div>
@@ -139,8 +139,8 @@ export default function Hero() {
           <div className="mt-5 grid grid-cols-2 gap-3">
             {stats.map((stat) => (
               <article key={stat.label} className="glass rounded-2xl p-4">
-                <p className="text-2xl font-extrabold tracking-tight text-slate-900">{stat.value}</p>
-                <p className="mt-1 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">{stat.label}</p>
+                <p className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">{stat.value}</p>
+                <p className="mt-1 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">{stat.label}</p>
               </article>
             ))}
           </div>

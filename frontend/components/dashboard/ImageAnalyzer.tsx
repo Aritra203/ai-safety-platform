@@ -84,7 +84,7 @@ export default function ImageAnalyzer({ onResult, onLoading }: Props) {
 
   return (
     <div className="p-5 flex flex-col gap-4">
-      <p className="text-xs font-mono text-slate-500 tracking-[0.12em]">UPLOAD IMAGE / SCREENSHOT</p>
+      <p className="text-xs font-mono text-slate-500 tracking-[0.12em] dark:text-slate-400">UPLOAD IMAGE / SCREENSHOT</p>
 
       {!preview ? (
         <div
@@ -94,8 +94,8 @@ export default function ImageAnalyzer({ onResult, onLoading }: Props) {
           onClick={() => inputRef.current?.click()}
           className={`relative border-2 border-dashed rounded-xl p-10 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 ${
             dragging
-              ? "border-orange-400 bg-orange-50"
-              : "border-slate-300 hover:border-slate-400 hover:bg-white"
+              ? "border-orange-400 bg-orange-50 dark:bg-orange-900/20"
+              : "border-slate-300 hover:border-slate-400 hover:bg-white dark:border-slate-600 dark:hover:border-slate-500 dark:hover:bg-slate-800/60"
           }`}
         >
           <input
@@ -105,16 +105,16 @@ export default function ImageAnalyzer({ onResult, onLoading }: Props) {
             className="hidden"
             onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
           />
-          <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center mb-4">
-            <Upload size={20} className="text-slate-600" />
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800">
+            <Upload size={20} className="text-slate-600 dark:text-slate-300" />
           </div>
-          <p className="text-slate-700 text-sm text-center font-semibold">
+          <p className="text-center text-sm font-semibold text-slate-700 dark:text-slate-200">
             Drop an image here or click to upload
           </p>
-          <p className="text-slate-500 text-xs mt-1">PNG, JPG, WEBP up to 10MB</p>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">PNG, JPG, WEBP up to 10MB</p>
         </div>
       ) : (
-        <div className="relative rounded-xl overflow-hidden border border-slate-300">
+        <div className="relative overflow-hidden rounded-xl border border-slate-300 dark:border-slate-600">
           <img src={preview} alt="Preview" className="w-full max-h-48 object-cover" />
           <button
             onClick={clear}
@@ -133,7 +133,7 @@ export default function ImageAnalyzer({ onResult, onLoading }: Props) {
 
       <div className="glass-red rounded-xl p-3 text-xs border">
         <p className="font-semibold mb-1 text-orange-700 tracking-[0.08em]">OCR + VISUAL ANALYSIS</p>
-        <p className="text-slate-700">
+        <p className="text-slate-700 dark:text-slate-300">
           Our AI extracts text via Tesseract OCR and also analyzes visual context for harmful imagery, memes, and hate symbols.
         </p>
       </div>

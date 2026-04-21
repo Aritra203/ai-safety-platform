@@ -126,9 +126,9 @@ export default function SignInContent() {
           </p>
         </div>
 
-        <p className="mt-6 text-center text-sm text-slate-600">
+        <p className="mt-6 text-center text-sm text-slate-600 dark:text-slate-400">
           First time here?{" "}
-          <Link href="#" className="font-semibold text-orange-600 hover:text-orange-700">
+          <Link href="#" className="font-semibold text-orange-600 hover:text-orange-700 dark:text-orange-400 dark:hover:text-orange-300">
             Learn more <ArrowRight className="inline w-3 h-3" />
           </Link>
         </p>

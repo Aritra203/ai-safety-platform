@@ -103,99 +103,99 @@ export default function FIRModal({ firId, result, user, onClose }: Props) {
                     value={form.complainant_name}
                     onChange={(event) => setForm({ ...form, complainant_name: event.target.value })}
                     placeholder="Full legal name"
-                    className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 placeholder-slate-400 focus:border-orange-400 focus:outline-none"
+                    className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 placeholder-slate-400 focus:border-orange-400 focus:outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder-slate-500"
                   />
                 </label>
 
-                <label className="text-sm font-semibold text-slate-700">
+                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                   Contact Number *
                   <input
                     value={form.complainant_contact}
                     onChange={(event) => setForm({ ...form, complainant_contact: event.target.value })}
                     placeholder="+91 98XXXXXXXX"
-                    className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 placeholder-slate-400 focus:border-orange-400 focus:outline-none"
+                    className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 placeholder-slate-400 focus:border-orange-400 focus:outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder-slate-500"
                   />
                 </label>
               </div>
-              <label className="mt-3 block text-sm font-semibold text-slate-700">
+              <label className="mt-3 block text-sm font-semibold text-slate-700 dark:text-slate-300">
                 Address
                 <input
                   value={form.complainant_address}
                   onChange={(event) => setForm({ ...form, complainant_address: event.target.value })}
                   placeholder="Residential address"
-                  className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 placeholder-slate-400 focus:border-orange-400 focus:outline-none"
+                  className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 placeholder-slate-400 focus:border-orange-400 focus:outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder-slate-500"
                 />
               </label>
             </div>
 
             <div>
-              <p className="mb-3 text-xs font-bold uppercase text-slate-600 tracking-widest">Against Whom (Accused)</p>
+              <p className="mb-3 text-xs font-bold uppercase text-slate-600 tracking-widest dark:text-slate-400">Against Whom (Accused)</p>
               <div className="grid gap-3 md:grid-cols-2">
-                <label className="text-sm font-semibold text-slate-700">
+                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                   Name/Account Name
                   <input
                     value={form.accused_name}
                     onChange={(event) => setForm({ ...form, accused_name: event.target.value })}
                     placeholder="Person/account being complained against"
-                    className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 placeholder-slate-400 focus:border-orange-400 focus:outline-none"
+                    className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 placeholder-slate-400 focus:border-orange-400 focus:outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder-slate-500"
                   />
                 </label>
 
-                <label className="text-sm font-semibold text-slate-700">
+                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                   Username/Profile URL
                   <input
                     value={form.accused_details}
                     onChange={(event) => setForm({ ...form, accused_details: event.target.value })}
                     placeholder="@username or profile link"
-                    className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 placeholder-slate-400 focus:border-orange-400 focus:outline-none"
+                    className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 placeholder-slate-400 focus:border-orange-400 focus:outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder-slate-500"
                   />
                 </label>
               </div>
             </div>
 
             <div>
-              <p className="mb-3 text-xs font-bold uppercase text-slate-600 tracking-widest">Incident Details</p>
+              <p className="mb-3 text-xs font-bold uppercase text-slate-600 tracking-widest dark:text-slate-400">Incident Details</p>
               <div className="grid gap-3 md:grid-cols-2">
-                <label className="text-sm font-semibold text-slate-700">
+                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                   Date
                   <input
                     type="date"
                     value={form.incident_date}
                     onChange={(event) => setForm({ ...form, incident_date: event.target.value })}
-                    className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 focus:border-orange-400 focus:outline-none"
+                    className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 focus:border-orange-400 focus:outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
                   />
                 </label>
 
-                <label className="text-sm font-semibold text-slate-700">
+                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                   Time (IST)
                   <input
                     type="time"
                     value={form.incident_time}
                     onChange={(event) => setForm({ ...form, incident_time: event.target.value })}
-                    className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 focus:border-orange-400 focus:outline-none"
+                    className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 focus:border-orange-400 focus:outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
                   />
                 </label>
               </div>
 
-              <label className="mt-3 block text-sm font-semibold text-slate-700">
+              <label className="mt-3 block text-sm font-semibold text-slate-700 dark:text-slate-300">
                 Incident Location
                 <input
                   value={form.incident_location}
                   onChange={(event) => setForm({ ...form, incident_location: event.target.value })}
                   placeholder="Online platform, social media site, etc."
-                  className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 placeholder-slate-400 focus:border-orange-400 focus:outline-none"
+                  className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 placeholder-slate-400 focus:border-orange-400 focus:outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder-slate-500"
                 />
               </label>
             </div>
 
-            <label className="block text-sm font-semibold text-slate-700">
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
               Additional Details / Description
               <textarea
                 rows={4}
                 value={form.additional_info}
                 onChange={(event) => setForm({ ...form, additional_info: event.target.value })}
                 placeholder="Detailed description of the incident, context, prior incidents, etc."
-                className="mt-1.5 w-full resize-none rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 placeholder-slate-400 focus:border-orange-400 focus:outline-none"
+                className="mt-1.5 w-full resize-none rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 placeholder-slate-400 focus:border-orange-400 focus:outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder-slate-500"
               />
             </label>
 
@@ -223,8 +223,8 @@ export default function FIRModal({ firId, result, user, onClose }: Props) {
             <div className="mx-auto mb-4 inline-flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
               <CheckCircle2 size={26} />
             </div>
-            <h4 className="text-xl font-black text-slate-900">FIR successfully generated</h4>
-            <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-slate-600">
+            <h4 className="text-xl font-black text-slate-900 dark:text-white">FIR successfully generated</h4>
+            <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-slate-600 dark:text-slate-400">
               The final report includes legal mappings, timestamps, and evidence links ready for download and further submission.
             </p>
             <div className="mt-6 flex flex-wrap justify-center gap-3">
@@ -239,7 +239,7 @@ export default function FIRModal({ firId, result, user, onClose }: Props) {
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700"
+                className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300"
               >
                 Close
               </button>

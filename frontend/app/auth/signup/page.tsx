@@ -27,20 +27,20 @@ export default function SignUpPage() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-orange-50 via-white to-sky-50 flex items-center justify-center px-4">
-      <div className="orb left-[-180px] top-[-120px] h-[340px] w-[340px] bg-orange-400/20" />
-      <div className="orb right-[-120px] bottom-[10%] h-[260px] w-[260px] bg-sky-300/25" />
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-orange-50 via-white to-sky-50 flex items-center justify-center px-4 dark:from-slate-950 dark:via-slate-900 dark:to-slate-900">
+      <div className="orb left-[-180px] top-[-120px] h-[340px] w-[340px] bg-orange-400/20 dark:bg-orange-400/5" />
+      <div className="orb right-[-120px] bottom-[10%] h-[260px] w-[260px] bg-sky-300/25 dark:bg-sky-300/5" />
 
       <div className="relative z-10 w-full max-w-md">
         <Link
           href="/"
-          className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-900 mb-8"
+          className="mb-8 inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
         >
           <ArrowLeft size={16} />
           Back to Home
         </Link>
 
-        <div className="glass rounded-3xl border border-white/80 p-8 md:p-10 shadow-[0_20px_60px_rgba(0,0,0,0.08)]">
+        <div className="glass rounded-3xl border border-white/80 p-8 shadow-[0_20px_60px_rgba(0,0,0,0.08)] md:p-10 dark:border-slate-700/60 dark:bg-slate-800/50 dark:shadow-[0_20px_60px_rgba(0,0,0,0.3)]">
           <div className="mb-8 flex justify-center">
             <div className="hero-ring">
               <div className="flex h-12 w-12 items-center justify-center">
@@ -61,15 +61,15 @@ export default function SignUpPage() {
             </div>
           </div>
 
-          <h1 className="text-center text-3xl font-bold text-slate-900 mb-2">
+          <h1 className="mb-2 text-center text-3xl font-bold text-slate-900 dark:text-white">
             Create Account
           </h1>
-          <p className="text-center text-sm text-slate-600 mb-8">
+          <p className="mb-8 text-center text-sm text-slate-600 dark:text-slate-400">
             Join SafeGuard to protect communities from harmful content
           </p>
 
-          <div className="bg-gradient-to-r from-orange-50 to-amber-50 rounded-2xl p-4 border border-orange-100 mb-6">
-            <ul className="space-y-2 text-xs text-slate-700">
+          <div className="mb-6 rounded-2xl border border-orange-100 bg-gradient-to-r from-orange-50 to-amber-50 p-4 dark:border-orange-900/30 dark:from-orange-950/30 dark:to-amber-950/30">
+            <ul className="space-y-2 text-xs text-slate-700 dark:text-slate-300">
               <li className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
                 <span>Real-time threat detection</span>
@@ -88,7 +88,7 @@ export default function SignUpPage() {
           <button
             onClick={handleGoogleSignUp}
             disabled={loading}
-            className="w-full inline-flex items-center justify-center gap-3 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed mb-4"
+            className="mb-4 inline-flex w-full items-center justify-center gap-3 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600"
           >
             {loading ? (
               <>
@@ -112,7 +112,7 @@ export default function SignUpPage() {
             )}
           </button>
 
-          <p className="text-center text-xs text-slate-600">
+          <p className="text-center text-xs text-slate-600 dark:text-slate-400">
             Already have an account?{" "}
             <Link href="/auth/signin" className="font-semibold text-orange-600 hover:text-orange-700">
               Sign in here
@@ -120,7 +120,7 @@ export default function SignUpPage() {
           </p>
         </div>
 
-        <p className="mt-8 text-center text-xs text-slate-500">
+        <p className="mt-8 text-center text-xs text-slate-500 dark:text-slate-400">
           We&apos;ll never share your information with third parties
         </p>
       </div>

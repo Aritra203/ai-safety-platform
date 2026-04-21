@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 from datetime import timezone
 from pathlib import Path
 from urllib.parse import urlparse
+from xml.sax.saxutils import escape
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
@@ -249,7 +250,12 @@ class FIRService:
             fir_record = await self.db.fir_reports.find_one({"fir_id": data.fir_id, **owner_filter})
             if not fir_record:
                 raise ValueError(f"FIR {data.fir_id} not found")
-            analysis = await self.db.analyses.find_one({"id": data.analysis_id})
+            # Analysis persistence is async after /analyze-*; retry briefly to avoid "N/A" content in FIR.
+            for _ in range(4):
+                analysis = await self.db.analyses.find_one({"id": data.analysis_id})
+                if analysis:
+                    break
+                await asyncio.sleep(0.25)
         else:
             logger.warning("MongoDB unavailable; finalizing FIR in non-persistent mode")
 
@@ -778,17 +784,26 @@ class FIRService:
                                                                     
         story.append(Spacer(1, 0.3 * cm))
         story.append(Paragraph(f"{section_num + 2}. INCIDENT DESCRIPTION & EVIDENCE", section_style))
-        original_text = analysis.get("original_text", "N/A") if analysis else "N/A"
+
+        analysis_text = ""
+        if analysis is not None:
+            analysis_text = str(analysis.get("original_text") or "").strip()
+            if analysis_text.upper() == "N/A":
+                analysis_text = ""
+
+        user_incident_description = str(data.additional_info or "").strip()
+        incident_description = analysis_text or user_incident_description or "N/A"
+
         story.append(Paragraph(
             f"The following content was submitted for analysis and flagged as harmful:<br/><br/>"
-            f'<font name="Courier" size="8" color="#555555">"{original_text[:800]}"</font>',
+            f'<font name="Courier" size="8" color="#555555">"{escape(incident_description[:800])}"</font>',
             body_style
         ))
 
-        if data.additional_info:
+        if user_incident_description and user_incident_description != incident_description:
             story.append(Spacer(1, 0.2 * cm))
             story.append(Paragraph("<b>Complainant's Description of Incident:</b>", body_style))
-            story.append(Paragraph(data.additional_info, body_style))
+            story.append(Paragraph(escape(user_incident_description), body_style))
 
                                                                     
         story.append(Spacer(1, 0.3 * cm))
@@ -843,17 +858,17 @@ class FIRService:
 
                         
         sig_data = [
-            ["Complainant Signature", "", "Date"],
             [data.complainant_name, "", data.incident_date],
+            ["Complainant Signature", "", "Date"],
         ]
         sig_table = Table(sig_data, colWidths=[7 * cm, 3 * cm, 7 * cm])
         sig_table.setStyle(TableStyle([
-            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-            ("FONTNAME", (0, 1), (-1, 1), "Helvetica"),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica"),
+            ("FONTNAME", (0, 1), (-1, 1), "Helvetica-Bold"),
             ("FONTSIZE", (0, 0), (-1, -1), 8),
             ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-            ("LINEABOVE", (0, 0), (0, 0), 1, colors.black),
-            ("LINEABOVE", (2, 0), (2, 0), 1, colors.black),
+            ("LINEBELOW", (0, 0), (0, 0), 1, colors.black),
+            ("LINEBELOW", (2, 0), (2, 0), 1, colors.black),
             ("PADDING", (0, 0), (-1, -1), 4),
         ]))
         story.append(sig_table)

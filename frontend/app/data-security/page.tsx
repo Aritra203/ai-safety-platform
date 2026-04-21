@@ -9,53 +9,53 @@ export default function DataSecurityPage() {
       <div className="mx-auto max-w-4xl px-6 py-20">
         <Link
           href="/"
-          className="inline-flex items-center gap-2 mb-8 text-slate-300 hover:text-orange-500 transition"
+          className="mb-8 inline-flex items-center gap-2 text-slate-600 transition hover:text-orange-500 dark:text-slate-400"
         >
           <ArrowLeft size={18} />
           Back to Home
         </Link>
 
         <article className="glass rounded-3xl p-8 md:p-12">
-          <h1 className="text-4xl font-black text-white mb-4">Data Security</h1>
-          <p className="text-sm text-slate-400 mb-8">Last updated: April 18, 2026</p>
+          <h1 className="mb-4 text-4xl font-black text-slate-900 dark:text-white">Data Security</h1>
+          <p className="mb-8 text-sm text-slate-600 dark:text-slate-400">Last updated: April 18, 2026</p>
 
-          <div className="prose prose-slate max-w-none space-y-6 text-slate-200">
+          <div className="prose prose-slate max-w-none space-y-6 text-slate-700 dark:text-slate-300">
             <section>
-              <h2 className="text-2xl font-bold text-white mb-3">Security Framework</h2>
+              <h2 className="mb-3 text-2xl font-bold text-slate-900 dark:text-white">Security Framework</h2>
               <p>
                 SafeGuard AI implements a comprehensive security framework designed to protect your data from unauthorized access, disclosure, alteration, and destruction.
               </p>
             </section>
 
             <section>
-              <h2 className="text-2xl font-bold text-white mb-3">Encryption Standards</h2>
+              <h2 className="mb-3 text-2xl font-bold text-slate-900 dark:text-white">Encryption Standards</h2>
               <div className="space-y-4">
                 <div className="flex gap-3">
                   <Lock className="text-orange-600 flex-shrink-0" size={24} />
                   <div>
-                    <h3 className="font-bold text-slate-900">End-to-End Encryption</h3>
-                    <p>All data in transit is encrypted using TLS 1.3 protocol</p>
+                    <h3 className="font-bold text-slate-900 dark:text-white">End-to-End Encryption</h3>
+                    <p className="text-slate-600 dark:text-slate-300">All data in transit is encrypted using TLS 1.3 protocol</p>
                   </div>
                 </div>
                 <div className="flex gap-3">
                   <Shield className="text-orange-600 flex-shrink-0" size={24} />
                   <div>
-                    <h3 className="font-bold text-white">At-Rest Encryption</h3>
-                    <p>Sensitive data stored in databases is encrypted using AES-256</p>
+                    <h3 className="font-bold text-slate-900 dark:text-white">At-Rest Encryption</h3>
+                    <p className="text-slate-600 dark:text-slate-300">Sensitive data stored in databases is encrypted using AES-256</p>
                   </div>
                 </div>
                 <div className="flex gap-3">
                   <Eye className="text-orange-600 flex-shrink-0" size={24} />
                   <div>
-                    <h3 className="font-bold text-white">Access Controls</h3>
-                    <p>Strict role-based access control (RBAC) with audit logging</p>
+                    <h3 className="font-bold text-slate-900 dark:text-white">Access Controls</h3>
+                    <p className="text-slate-600 dark:text-slate-300">Strict role-based access control (RBAC) with audit logging</p>
                   </div>
                 </div>
               </div>
             </section>
 
             <section>
-              <h2 className="text-2xl font-bold text-white mb-3">Compliance</h2>
+              <h2 className="mb-3 text-2xl font-bold text-slate-900 dark:text-white">Compliance</h2>
               <ul className="list-disc pl-6 space-y-2">
                 <li>GDPR Compliance for EU data subjects</li>
                 <li>CCPA Compliance for California residents</li>
@@ -65,14 +65,14 @@ export default function DataSecurityPage() {
             </section>
 
             <section>
-              <h2 className="text-2xl font-bold text-white mb-3">Incident Response</h2>
+              <h2 className="mb-3 text-2xl font-bold text-slate-900 dark:text-white">Incident Response</h2>
               <p>
                 We maintain a comprehensive incident response plan and will notify affected users within 24 hours of any confirmed data breach.
               </p>
             </section>
 
             <section>
-              <h2 className="text-2xl font-bold text-white mb-3">Regular Security Updates</h2>
+              <h2 className="mb-3 text-2xl font-bold text-slate-900 dark:text-white">Regular Security Updates</h2>
               <div className="flex gap-3">
                 <Zap className="text-orange-600 flex-shrink-0" size={24} />
                 <div>
@@ -84,7 +84,7 @@ export default function DataSecurityPage() {
             </section>
 
             <section>
-              <h2 className="text-2xl font-bold text-white mb-3">Report Security Issues</h2>
+              <h2 className="mb-3 text-2xl font-bold text-slate-900 dark:text-white">Report Security Issues</h2>
               <p>
                 If you discover a security vulnerability, please report it to security@safeguard-ai.com. We appreciate responsible disclosure.
               </p>

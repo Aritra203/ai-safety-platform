@@ -88,8 +88,8 @@ export default function Navbar() {
               </button>
 
               {userMenuOpen && (
-                <div className="absolute right-0 mt-2 w-56 rounded-2xl bg-white shadow-lg border border-slate-200 overflow-hidden">
-                  <div className="p-4 border-b border-slate-200">
+                <div className="absolute right-0 mt-2 w-56 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900">
+                  <div className="border-b border-slate-200 p-4 dark:border-slate-700">
                     <p className="text-sm font-semibold text-slate-900 dark:text-white">
                       {session.user.name}
                     </p>
@@ -98,13 +98,13 @@ export default function Navbar() {
                   <div className="p-2 space-y-1">
                     <Link
                       href="/dashboard"
-                      className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm text-slate-700 hover:bg-orange-50 transition"
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-700 transition hover:bg-orange-50 dark:text-slate-300 dark:hover:bg-slate-800"
                       onClick={() => setUserMenuOpen(false)}
                     >
                       <span>📊</span> Dashboard
                     </Link>
                     <button
-                      className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm text-slate-700 hover:bg-orange-50 transition"
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-700 transition hover:bg-orange-50 dark:text-slate-300 dark:hover:bg-slate-800"
                       onClick={() => setUserMenuOpen(false)}
                     >
                       <Settings size={14} /> Settings
@@ -114,7 +114,7 @@ export default function Navbar() {
                         setUserMenuOpen(false);
                         signOut({ callbackUrl: "/" });
                       }}
-                      className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm text-red-600 hover:bg-red-50 transition"
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-600 transition hover:bg-red-50 dark:hover:bg-red-950/30"
                     >
                       <span>🚪</span> Sign Out
                     </button>
@@ -143,7 +143,7 @@ export default function Navbar() {
 
         <button
           type="button"
-          className="rounded-xl border border-slate-300 bg-white/80 p-2 text-slate-700 md:hidden"
+          className="rounded-xl border border-slate-300 bg-white/80 p-2 text-slate-700 md:hidden dark:border-slate-600 dark:bg-slate-800/70 dark:text-slate-300"
           onClick={() => setMenuOpen((open) => !open)}
           aria-label="Toggle navigation menu"
         >
@@ -170,21 +170,21 @@ export default function Navbar() {
               <Link
                 key={link.href}
                 href={link.href}
-                className="rounded-xl px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+                className="rounded-xl px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
                 onClick={() => setMenuOpen(false)}
               >
                 {link.label}
               </Link>
             ))}
-            <div className="my-2 border-t border-slate-200" />
+            <div className="my-2 border-t border-slate-200 dark:border-slate-700" />
             {status === "authenticated" && session?.user ? (
               <>
-                <div className="px-3 py-2 text-sm font-semibold text-slate-900 mb-1">
+                <div className="mb-1 px-3 py-2 text-sm font-semibold text-slate-900 dark:text-white">
                   {session.user.name}
                 </div>
                 <Link
                   href="/dashboard"
-                  className="rounded-xl px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 block"
+                  className="block rounded-xl px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
                   onClick={() => setMenuOpen(false)}
                 >
                   Dashboard
@@ -194,7 +194,7 @@ export default function Navbar() {
                     setMenuOpen(false);
                     signOut({ callbackUrl: "/" });
                   }}
-                  className="w-full text-left rounded-xl px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+                  className="w-full rounded-xl px-3 py-2 text-left text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
                 >
                   Sign Out
                 </button>
@@ -203,7 +203,7 @@ export default function Navbar() {
               <>
                 <Link
                   href="/auth/signin"
-                  className="rounded-xl px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 block"
+                  className="block rounded-xl px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
                   onClick={() => setMenuOpen(false)}
                 >
                   Sign In

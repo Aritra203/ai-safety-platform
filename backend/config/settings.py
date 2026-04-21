@@ -84,7 +84,7 @@ class Settings(BaseSettings):
     OCR_MAX_DIM: int = 1800
     OCR_UPSCALE_MIN_DIM: int = 900
     OCR_UPSCALE_FACTOR: float = 1.5
-    OCR_ENABLE_EASYOCR_FALLBACK: bool = False
+    OCR_ENABLE_EASYOCR_FALLBACK: bool = True
     OCR_FALLBACK_TIME_BUDGET_SEC: float = 8.0
 
                                                                    

@@ -206,7 +206,7 @@ export default function ResultsPanel({ result, loading }: Props) {
               <button
                 type="button"
                 onClick={() => downloadFIR(firId, session?.user)}
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400"
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-slate-500"
               >
                 <Download size={15} />
                 Download

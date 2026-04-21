@@ -84,10 +84,10 @@ export default function ContextAnalyzer({ onResult, onLoading }: Props) {
   return (
     <div className="p-5 flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-mono text-slate-500 tracking-[0.12em]">CONVERSATION THREAD</p>
+        <p className="text-xs font-mono text-slate-500 tracking-[0.12em] dark:text-slate-400">CONVERSATION THREAD</p>
         <button
           onClick={addMessage}
-          className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-800 transition-colors"
+          className="flex items-center gap-1 text-xs text-slate-500 transition-colors hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
         >
           <Plus size={12} /> Add message
         </button>
@@ -106,12 +106,12 @@ export default function ContextAnalyzer({ onResult, onLoading }: Props) {
                 value={msg.text}
                 onChange={(e) => updateMessage(i, "text", e.target.value)}
                 placeholder={`Message ${i + 1}...`}
-                className="flex-1 bg-white/85 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-700 placeholder-slate-400 focus:outline-none focus:border-orange-400 transition-colors"
+                className="flex-1 rounded-lg border border-slate-300 bg-white/85 px-3 py-2 text-xs text-slate-700 placeholder-slate-400 transition-colors focus:border-orange-400 focus:outline-none dark:border-slate-600 dark:bg-slate-800/60 dark:text-slate-100 dark:placeholder-slate-500"
               />
               {messages.length > 1 && (
                 <button
                   onClick={() => removeMessage(i)}
-                  className="text-slate-400 hover:text-rose-600 transition-colors"
+                  className="text-slate-400 transition-colors hover:text-rose-600 dark:hover:text-rose-400"
                 >
                   <Trash2 size={12} />
                 </button>
@@ -121,7 +121,7 @@ export default function ContextAnalyzer({ onResult, onLoading }: Props) {
         ))}
       </div>
 
-      <div className="glass-red rounded-xl p-3 text-xs text-slate-700 border">
+      <div className="glass-red rounded-xl border p-3 text-xs text-slate-700 dark:text-slate-300">
         <p className="text-orange-700 font-semibold mb-1 tracking-[0.08em]">CONTEXT-AWARE ANALYSIS</p>
         Detects escalation patterns, grooming progressions, and sustained harassment across the full conversation thread.
       </div>

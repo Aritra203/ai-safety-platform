@@ -39,7 +39,7 @@ export default function OnboardingPage() {
 
   if (status === "loading") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 via-white to-sky-50">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 via-white to-sky-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-900">
         <Loader2 className="w-8 h-8 animate-spin text-orange-600" />
       </div>
     );
@@ -50,9 +50,9 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-orange-50 via-white to-sky-50">
-      <div className="orb left-[-180px] top-[-120px] h-[340px] w-[340px] bg-orange-400/20" />
-      <div className="orb right-[-120px] bottom-[10%] h-[260px] w-[260px] bg-sky-300/25" />
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-orange-50 via-white to-sky-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-900">
+      <div className="orb left-[-180px] top-[-120px] h-[340px] w-[340px] bg-orange-400/20 dark:bg-orange-400/5" />
+      <div className="orb right-[-120px] bottom-[10%] h-[260px] w-[260px] bg-sky-300/25 dark:bg-sky-300/5" />
 
       <div className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-400 via-amber-400 to-orange-500 z-50" />
 
@@ -60,24 +60,24 @@ export default function OnboardingPage() {
         <div className="w-full max-w-2xl">
           <div className="flex items-center justify-between mb-12">
             <div>
-              <h1 className="text-4xl font-bold text-slate-900 mb-2">
+              <h1 className="mb-2 text-4xl font-bold text-slate-900 dark:text-white">
                 Welcome, {session.user.name}! 👋
               </h1>
-              <p className="text-lg text-slate-600">
+              <p className="text-lg text-slate-600 dark:text-slate-400">
                 Let&apos;s set up your SafeGuard profile
               </p>
             </div>
             <button
               onClick={() => signOut({ callbackUrl: "/" })}
-              className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition"
+              className="text-sm font-semibold text-slate-600 transition hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
             >
               Sign Out
             </button>
           </div>
 
           <div className="grid md:grid-cols-2 gap-6 mb-8">
-            <div className="glass rounded-3xl border border-white/80 p-8">
-              <h2 className="text-xl font-bold text-slate-900 mb-6">Profile</h2>
+            <div className="glass rounded-3xl border border-white/80 p-8 dark:border-slate-700/60 dark:bg-slate-800/50">
+              <h2 className="mb-6 text-xl font-bold text-slate-900 dark:text-white">Profile</h2>
 
               <div className="space-y-5">
                 <div className="flex items-center gap-4">
@@ -89,21 +89,21 @@ export default function OnboardingPage() {
                     />
                   )}
                   <div>
-                    <p className="font-semibold text-slate-900">
+                    <p className="font-semibold text-slate-900 dark:text-white">
                       {session.user.name}
                     </p>
-                    <p className="text-sm text-slate-600">{session.user.email}</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">{session.user.email}</p>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-slate-900 mb-2">
+                  <label className="mb-2 block text-sm font-semibold text-slate-900 dark:text-slate-200">
                     Gender
                   </label>
                   <select
                     value={gender}
                     onChange={(e) => setGender(e.target.value)}
-                    className="w-full px-4 py-2 rounded-xl border border-slate-300 bg-white/70 text-slate-900 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400/20 transition"
+                    className="w-full rounded-xl border border-slate-300 bg-white/70 px-4 py-2 text-slate-900 transition focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400/20 dark:border-slate-600 dark:bg-slate-800/70 dark:text-slate-100"
                   >
                     <option value="">Select Gender</option>
                     <option value="male">Male</option>
@@ -114,27 +114,27 @@ export default function OnboardingPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-slate-900 mb-2">
+                  <label className="mb-2 block text-sm font-semibold text-slate-900 dark:text-slate-200">
                     Date of Birth
                   </label>
                   <input
                     type="date"
                     value={dob}
                     onChange={(e) => setDob(e.target.value)}
-                    className="w-full px-4 py-2 rounded-xl border border-slate-300 bg-white/70 text-slate-900 placeholder-slate-500 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400/20 transition"
+                    className="w-full rounded-xl border border-slate-300 bg-white/70 px-4 py-2 text-slate-900 placeholder-slate-500 transition focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400/20 dark:border-slate-600 dark:bg-slate-800/70 dark:text-slate-100 dark:placeholder-slate-400"
                   />
                 </div>
               </div>
             </div>
 
-            <div className="glass rounded-3xl border border-white/80 p-8">
-              <h2 className="text-xl font-bold text-slate-900 mb-6">
+            <div className="glass rounded-3xl border border-white/80 p-8 dark:border-slate-700/60 dark:bg-slate-800/50">
+              <h2 className="mb-6 text-xl font-bold text-slate-900 dark:text-white">
                 Organization
               </h2>
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-semibold text-slate-900 mb-2">
+                  <label className="mb-2 block text-sm font-semibold text-slate-900 dark:text-slate-200">
                     Organization Name
                   </label>
                   <input
@@ -142,18 +142,18 @@ export default function OnboardingPage() {
                     value={organization}
                     onChange={(e) => setOrganization(e.target.value)}
                     placeholder="e.g., NGO, School, Police Department"
-                    className="w-full px-4 py-2 rounded-xl border border-slate-300 bg-white/70 text-slate-900 placeholder-slate-500 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400/20 transition"
+                    className="w-full rounded-xl border border-slate-300 bg-white/70 px-4 py-2 text-slate-900 placeholder-slate-500 transition focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400/20 dark:border-slate-600 dark:bg-slate-800/70 dark:text-slate-100 dark:placeholder-slate-400"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-slate-900 mb-2">
+                  <label className="mb-2 block text-sm font-semibold text-slate-900 dark:text-slate-200">
                     Your Role
                   </label>
                   <select
                     value={role}
                     onChange={(e) => setRole(e.target.value)}
-                    className="w-full px-4 py-2 rounded-xl border border-slate-300 bg-white/70 text-slate-900 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400/20 transition"
+                    className="w-full rounded-xl border border-slate-300 bg-white/70 px-4 py-2 text-slate-900 transition focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400/20 dark:border-slate-600 dark:bg-slate-800/70 dark:text-slate-100"
                   >
                     <option value="analyst">Safety Analyst</option>
                     <option value="reviewer">Content Reviewer</option>
@@ -165,8 +165,8 @@ export default function OnboardingPage() {
             </div>
           </div>
 
-          <div className="glass rounded-3xl border border-white/80 p-8 mb-8">
-            <h2 className="text-xl font-bold text-slate-900 mb-6">
+          <div className="glass mb-8 rounded-3xl border border-white/80 p-8 dark:border-slate-700/60 dark:bg-slate-800/50">
+            <h2 className="mb-6 text-xl font-bold text-slate-900 dark:text-white">
               What you can do
             </h2>
 
@@ -196,10 +196,10 @@ export default function OnboardingPage() {
                 <div key={i} className="flex gap-4">
                   <span className="text-3xl">{feature.icon}</span>
                   <div>
-                    <h3 className="font-semibold text-slate-900">
+                    <h3 className="font-semibold text-slate-900 dark:text-white">
                       {feature.title}
                     </h3>
-                    <p className="text-sm text-slate-600">{feature.desc}</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">{feature.desc}</p>
                   </div>
                 </div>
               ))}
@@ -228,7 +228,7 @@ export default function OnboardingPage() {
             <Link
               href="/auth/signin"
               onClick={() => signOut({ callbackUrl: "/" })}
-              className="flex-1 inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white/75 px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-white"
+              className="flex-1 inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white/75 px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-white dark:border-slate-600 dark:bg-slate-800/60 dark:text-slate-300 dark:hover:bg-slate-700"
             >
               Use Different Account
             </Link>

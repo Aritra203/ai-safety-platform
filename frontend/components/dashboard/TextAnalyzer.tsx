@@ -67,9 +67,9 @@ export default function TextAnalyzer({ onResult, onLoading }: Props) {
   return (
     <div className="p-5 flex flex-col gap-4 h-full">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-mono text-slate-500 tracking-[0.12em]">INPUT TEXT</p>
+        <p className="text-xs font-mono text-slate-500 tracking-[0.12em] dark:text-slate-400">INPUT TEXT</p>
         {text && (
-          <button onClick={() => setText("")} className="text-slate-400 hover:text-slate-700">
+          <button onClick={() => setText("")} className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">
             <X size={14} />
           </button>
         )}
@@ -79,19 +79,19 @@ export default function TextAnalyzer({ onResult, onLoading }: Props) {
         value={text}
         onChange={(e) => setText(e.target.value)}
         placeholder="Paste text, message, or post to analyze for harmful content..."
-        className="w-full min-h-[180px] rounded-xl border border-slate-300 bg-white/85 p-4 text-sm text-slate-700 placeholder-slate-400 resize-none leading-relaxed transition-colors focus:border-orange-400 focus:outline-none"
+        className="w-full min-h-[180px] resize-none rounded-xl border border-slate-300 bg-white/85 p-4 text-sm leading-relaxed text-slate-700 placeholder-slate-400 transition-colors focus:border-orange-400 focus:outline-none dark:border-slate-600 dark:bg-slate-800/60 dark:text-slate-100 dark:placeholder-slate-500"
       />
 
-      <div className="text-xs text-slate-500 font-mono text-right">{text.length} chars</div>
+      <div className="text-right font-mono text-xs text-slate-500 dark:text-slate-400">{text.length} chars</div>
 
       <div>
-        <p className="text-xs font-mono text-slate-500 mb-2 tracking-[0.12em]">QUICK EXAMPLES</p>
+        <p className="mb-2 text-xs font-mono text-slate-500 tracking-[0.12em] dark:text-slate-400">QUICK EXAMPLES</p>
         <div className="flex flex-col gap-1">
           {QUICK_EXAMPLES.map((ex, i) => (
             <button
               key={i}
               onClick={() => setText(ex)}
-              className="text-left text-xs text-slate-600 hover:text-slate-900 truncate px-2 py-1.5 rounded-lg hover:bg-white transition-colors"
+              className="truncate rounded-lg px-2 py-1.5 text-left text-xs text-slate-600 transition-colors hover:bg-white hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
             >
               → {ex}
             </button>

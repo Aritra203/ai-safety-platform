@@ -13,6 +13,7 @@ from io import BytesIO
 import re
 import hashlib
 import time
+import shutil
 
 logger = logging.getLogger(__name__)
 
@@ -21,9 +22,20 @@ from backend.config.settings import settings
                                                                     
 _paddle_ocr = None
 _easyocr_reader = None
+_tesseract_available: bool | None = None
 _OCR_CACHE: dict[str, tuple[float, str]] = {}
 _OCR_CACHE_TTL_SEC = 300
 _OCR_CACHE_MAX_ITEMS = 64
+
+
+def _is_tesseract_available() -> bool:
+    """Cache whether the tesseract binary is available in runtime PATH."""
+    global _tesseract_available
+    if _tesseract_available is None:
+        _tesseract_available = bool(shutil.which("tesseract"))
+        if not _tesseract_available:
+            logger.warning("Tesseract binary not found in PATH; OCR will rely on Paddle/EasyOCR fallbacks")
+    return _tesseract_available
 
 
 def _get_paddle_ocr():
@@ -106,10 +118,10 @@ def _preprocess_image(image):
         return image
 
 
-def _pil_to_jpg_bytes(image: "Image") -> bytes:
-    """Encode PIL image to jpg bytes for OCR engines expecting file input."""
+def _pil_to_ocr_bytes(image: "Image") -> bytes:
+    """Encode PIL image losslessly to preserve text edges for OCR."""
     buffer = BytesIO()
-    image.save(buffer, format="JPEG", quality=88)
+    image.save(buffer, format="PNG", optimize=True)
     return buffer.getvalue()
 
 
@@ -184,6 +196,9 @@ def _extract_with_tesseract(image: "Image") -> str:
     Extract text using Tesseract OCR with enhanced PSM for handwriting.
     """
     try:
+        if not _is_tesseract_available():
+            return ""
+
         import pytesseract
 
         variants = [("base", image)]
@@ -319,7 +334,7 @@ def extract_text_from_image(image_bytes: bytes) -> str:
 
     Pipeline:
     1. Preprocess image (contrast, deskew, upscale)
-    2. PaddleOCR primary
+    2. PaddleOCR primary + raw-image retry
     3. Tesseract fallback
     4. EasyOCR fallback (optional)
     """
@@ -345,13 +360,22 @@ def extract_text_from_image(image_bytes: bytes) -> str:
 
         original_image = image.copy()
         processed_image = _preprocess_image(image)
+        processed_bytes = _pil_to_ocr_bytes(processed_image)
+        original_bytes = _pil_to_ocr_bytes(original_image)
 
                                               
         logger.info("OCR Stage 1: PaddleOCR primary")
-        paddle_bytes = _pil_to_jpg_bytes(processed_image)
-        text = _extract_with_paddle(paddle_bytes)
+        text = _extract_with_paddle(processed_bytes)
         if text:
             logger.info("✅ PaddleOCR primary extracted %d chars", len(text))
+            final_text = _postprocess_ocr_text(text)
+            _ocr_cache_set(image_hash, final_text)
+            return final_text
+
+        logger.info("OCR Stage 1b: PaddleOCR raw-image retry")
+        text = _extract_with_paddle(original_bytes)
+        if text:
+            logger.info("✅ PaddleOCR raw-image retry extracted %d chars", len(text))
             final_text = _postprocess_ocr_text(text)
             _ocr_cache_set(image_hash, final_text)
             return final_text
@@ -363,26 +387,32 @@ def extract_text_from_image(image_bytes: bytes) -> str:
         # Crop only for fallback path to keep fast-path latency lower.
         cropped_image = _crop_text_region(processed_image)
 
-        logger.info("OCR Stage 2: Tesseract fallback")
-        text = _extract_with_tesseract(processed_image)
-        if not text:
-            text = _extract_with_tesseract(cropped_image)
-        if not text:
-            text = _extract_with_tesseract(original_image)
+        if _is_tesseract_available():
+            logger.info("OCR Stage 2: Tesseract fallback")
+            text = _extract_with_tesseract(processed_image)
+            if not text:
+                text = _extract_with_tesseract(cropped_image)
+            if not text:
+                text = _extract_with_tesseract(original_image)
 
-        if text:
-            logger.info("✅ Tesseract fallback extracted %d chars", len(text))
-            final_text = _postprocess_ocr_text(text)
-            _ocr_cache_set(image_hash, final_text)
-            return final_text
+            if text:
+                logger.info("✅ Tesseract fallback extracted %d chars", len(text))
+                final_text = _postprocess_ocr_text(text)
+                _ocr_cache_set(image_hash, final_text)
+                return final_text
+        else:
+            logger.info("OCR Stage 2 skipped: Tesseract binary unavailable")
 
         if _time_budget_exceeded():
             logger.warning("OCR time budget reached before EasyOCR stage")
             return ""
 
-        if settings.OCR_ENABLE_EASYOCR_FALLBACK:
+        should_try_easyocr = settings.OCR_ENABLE_EASYOCR_FALLBACK or not _is_tesseract_available()
+        if should_try_easyocr:
             logger.info("OCR Stage 3: EasyOCR fallback")
-            text = _extract_with_easyocr(paddle_bytes)
+            text = _extract_with_easyocr(processed_bytes)
+            if not text:
+                text = _extract_with_easyocr(original_bytes)
             if text:
                 logger.info("✅ EasyOCR fallback extracted %d chars", len(text))
                 final_text = _postprocess_ocr_text(text)

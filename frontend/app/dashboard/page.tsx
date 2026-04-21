@@ -112,7 +112,7 @@ export default function DashboardPage() {
                       className={`flex items-center justify-center gap-2 rounded-xl px-3 py-3 text-xs font-bold uppercase tracking-[0.1em] transition ${
                         activeTab === tab.id
                           ? "bg-gradient-to-r from-orange-600 to-amber-500 text-white shadow-[0_14px_25px_rgba(249,115,22,0.28)]"
-                          : "bg-white/70 text-slate-600 hover:bg-white hover:text-slate-900"
+                          : "bg-white/70 text-slate-600 hover:bg-white hover:text-slate-900 dark:bg-slate-800/70 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100"
                       }`}
                     >
                       <Icon size={15} />

@@ -81,33 +81,33 @@ export default function FIRHistory() {
 
   const getStatusBadge = (status: string) => {
     const styles = {
-      draft: "bg-yellow-100 text-yellow-800",
-      finalized: "bg-green-100 text-green-800",
-      pending: "bg-blue-100 text-blue-800",
+      draft: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
+      finalized: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+      pending: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
     };
-    return styles[status as keyof typeof styles] || "bg-gray-100 text-gray-800";
+    return styles[status as keyof typeof styles] || "bg-gray-100 text-gray-800 dark:bg-slate-800 dark:text-slate-300";
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 size={20} className="animate-spin text-orange-500 mr-2" />
-        <p className="text-slate-600">Loading FIR history...</p>
+        <p className="text-slate-600 dark:text-slate-400">Loading FIR history...</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+      <div className="rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-900/40 dark:bg-red-950/20">
         <div className="flex items-start gap-3">
           <AlertCircle size={18} className="text-red-600 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="font-semibold text-red-900">Error loading FIR history</p>
-            <p className="text-sm text-red-700 mt-1">{error}</p>
+            <p className="font-semibold text-red-900 dark:text-red-300">Error loading FIR history</p>
+            <p className="mt-1 text-sm text-red-700 dark:text-red-300">{error}</p>
             <button
               onClick={fetchFIRHistory}
-              className="mt-3 px-3 py-1.5 text-sm font-semibold text-red-700 hover:bg-red-100 rounded transition"
+              className="mt-3 rounded px-3 py-1.5 text-sm font-semibold text-red-700 transition hover:bg-red-100 dark:text-red-300 dark:hover:bg-red-900/30"
             >
               Try Again
             </button>
@@ -120,9 +120,9 @@ export default function FIRHistory() {
   if (firs.length === 0) {
     return (
       <div className="text-center py-12">
-        <FileText size={40} className="mx-auto text-slate-300 mb-3" />
-        <p className="text-slate-600 font-medium">No FIR reports yet</p>
-        <p className="text-sm text-slate-500 mt-1">Generate your first FIR from an analysis result</p>
+        <FileText size={40} className="mx-auto mb-3 text-slate-300 dark:text-slate-600" />
+        <p className="font-medium text-slate-600 dark:text-slate-300">No FIR reports yet</p>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Generate your first FIR from an analysis result</p>
       </div>
     );
   }
@@ -131,52 +131,52 @@ export default function FIRHistory() {
     <div className="space-y-3">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-lg font-bold text-slate-900">FIR History</h3>
-          <p className="text-sm text-slate-500 mt-0.5">{totalCount} total report{totalCount !== 1 ? "s" : ""}</p>
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white">FIR History</h3>
+          <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">{totalCount} total report{totalCount !== 1 ? "s" : ""}</p>
         </div>
         <button
           onClick={fetchFIRHistory}
-          className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-50 transition"
+          className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold transition hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
         >
           Refresh
         </button>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-slate-200">
+      <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
         <table className="w-full text-sm">
-          <thead className="bg-slate-50 border-b border-slate-200">
+          <thead className="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/50">
             <tr>
-              <th className="px-4 py-3 text-left font-semibold text-slate-700">FIR ID</th>
-              <th className="px-4 py-3 text-left font-semibold text-slate-700">Complainant</th>
-              <th className="px-4 py-3 text-left font-semibold text-slate-700">Against</th>
-              <th className="px-4 py-3 text-left font-semibold text-slate-700">Date</th>
-              <th className="px-4 py-3 text-left font-semibold text-slate-700">Status</th>
-              <th className="px-4 py-3 text-center font-semibold text-slate-700">Action</th>
+              <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">FIR ID</th>
+              <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">Complainant</th>
+              <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">Against</th>
+              <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">Date</th>
+              <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">Status</th>
+              <th className="px-4 py-3 text-center font-semibold text-slate-700 dark:text-slate-200">Action</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-200">
+          <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
             {firs.map((fir) => (
-              <tr key={fir.fir_id} className="hover:bg-slate-50 transition">
+              <tr key={fir.fir_id} className="transition hover:bg-slate-50 dark:hover:bg-slate-800/40">
                 <td className="px-4 py-3">
-                  <code className="text-xs font-mono bg-slate-100 px-2 py-1 rounded text-slate-700">
+                  <code className="rounded bg-slate-100 px-2 py-1 font-mono text-xs text-slate-700 dark:bg-slate-800 dark:text-slate-300">
                     {fir.fir_id}
                   </code>
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
-                    <User size={14} className="text-slate-400" />
-                    <span className="text-slate-900 font-medium truncate max-w-[200px]">
+                    <User size={14} className="text-slate-400 dark:text-slate-500" />
+                    <span className="max-w-[200px] truncate font-medium text-slate-900 dark:text-slate-100">
                       {fir.complainant_name || "—"}
                     </span>
                   </div>
                 </td>
-                <td className="px-4 py-3 text-slate-700 truncate max-w-[200px]">
+                <td className="max-w-[200px] truncate px-4 py-3 text-slate-700 dark:text-slate-300">
                   {fir.accused_name || "—"}
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
-                    <Calendar size={14} className="text-slate-400" />
-                    <span className="text-slate-700">{formatDate(fir.incident_date)}</span>
+                    <Calendar size={14} className="text-slate-400 dark:text-slate-500" />
+                    <span className="text-slate-700 dark:text-slate-300">{formatDate(fir.incident_date)}</span>
                   </div>
                 </td>
                 <td className="px-4 py-3">
@@ -192,14 +192,14 @@ export default function FIRHistory() {
                   {fir.status === "finalized" ? (
                     <button
                       onClick={() => handleDownloadFIR(fir.fir_id)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-orange-600 hover:bg-orange-50 rounded transition"
+                      className="inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-semibold text-orange-600 transition hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-950/30"
                       title="Download PDF"
                     >
                       <Download size={14} />
                       Download
                     </button>
                   ) : (
-                    <span className="text-xs text-slate-500">Not Ready</span>
+                    <span className="text-xs text-slate-500 dark:text-slate-400">Not Ready</span>
                   )}
                 </td>
               </tr>
