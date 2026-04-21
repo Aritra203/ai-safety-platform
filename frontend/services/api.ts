@@ -5,6 +5,26 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 const API_TIMEOUT_MS = Number(process.env.NEXT_PUBLIC_API_TIMEOUT_MS || 180000);
 const FIR_HISTORY_UPDATED_EVENT = "fir-history-updated";
 
+export interface ApiUserContext {
+  id?: string | null;
+  email?: string | null;
+}
+
+function buildUserHeaders(user?: ApiUserContext): Record<string, string> {
+  const headers: Record<string, string> = {};
+  const userId = user?.id?.trim();
+  const userEmail = user?.email?.trim();
+
+  if (userId) {
+    headers["x-user-id"] = userId;
+  }
+  if (userEmail) {
+    headers["x-user-email"] = userEmail.toLowerCase();
+  }
+
+  return headers;
+}
+
 const api = axios.create({
   baseURL: API_BASE,
   timeout: API_TIMEOUT_MS,
@@ -55,9 +75,14 @@ export async function analyzeContext(
 }
 
 export async function generateFIR(
-  analysisId: string
+  analysisId: string,
+  user?: ApiUserContext
 ): Promise<{ fir_id: string }> {
-  const { data } = await api.post("/generate-fir", { analysis_id: analysisId });
+  const { data } = await api.post(
+    "/generate-fir",
+    { analysis_id: analysisId },
+    { headers: buildUserHeaders(user) }
+  );
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent(FIR_HISTORY_UPDATED_EVENT));
   }
@@ -78,20 +103,43 @@ export async function generateFIRPDF(payload: {
   additional_info?: string;
   legal_sections: string[];
   evidence_urls: string[];
-}): Promise<{ fir_id: string; pdf_url: string; status: string }> {
-  const { data } = await api.post("/finalize-fir", payload);
+}, user?: ApiUserContext): Promise<{ fir_id: string; pdf_url: string; status: string }> {
+  const { data } = await api.post("/finalize-fir", payload, {
+    headers: buildUserHeaders(user),
+  });
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent(FIR_HISTORY_UPDATED_EVENT));
   }
   return data;
 }
 
-export function downloadFIR(firId: string): void {
-  window.open(`${API_BASE}/download-fir/${firId}`, "_blank");
+export function downloadFIR(firId: string, user?: ApiUserContext): void {
+  const params = new URLSearchParams();
+  const userId = user?.id?.trim();
+  const userEmail = user?.email?.trim();
+  if (userId) {
+    params.set("user_id", userId);
+  }
+  if (userEmail) {
+    params.set("user_email", userEmail.toLowerCase());
+  }
+
+  const query = params.toString();
+  const url = query
+    ? `${API_BASE}/download-fir/${firId}?${query}`
+    : `${API_BASE}/download-fir/${firId}`;
+  window.open(url, "_blank");
 }
 
-export async function getFIRHistory(limit: number = 50, skip: number = 0) {
-  const { data } = await api.get("/fir-history", { params: { limit, skip } });
+export async function getFIRHistory(
+  limit: number = 50,
+  skip: number = 0,
+  user?: ApiUserContext
+) {
+  const { data } = await api.get("/fir-history", {
+    params: { limit, skip },
+    headers: buildUserHeaders(user),
+  });
   return data;
 }
 

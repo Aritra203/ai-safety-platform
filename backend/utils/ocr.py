@@ -11,12 +11,19 @@ Optimized pipeline:
 import logging
 from io import BytesIO
 import re
+import hashlib
+import time
 
 logger = logging.getLogger(__name__)
+
+from backend.config.settings import settings
 
                                                                     
 _paddle_ocr = None
 _easyocr_reader = None
+_OCR_CACHE: dict[str, tuple[float, str]] = {}
+_OCR_CACHE_TTL_SEC = 300
+_OCR_CACHE_MAX_ITEMS = 64
 
 
 def _get_paddle_ocr():
@@ -35,7 +42,7 @@ def _get_paddle_ocr():
                 )
             except TypeError:
                                                                          
-                _paddle_ocr = PaddleOCR(use_angle_cls=True, lang="en", show_log=False)
+                _paddle_ocr = PaddleOCR(use_angle_cls=False, lang="en", show_log=False)
             logger.info("✅ PaddleOCR initialized")
         except Exception as e:
             logger.warning("PaddleOCR unavailable (%s)", e)
@@ -72,8 +79,21 @@ def _preprocess_image(image):
                                                                                 
         image = image.convert("L")
         w, h = image.size
-        if max(w, h) < 1400:
-            image = image.resize((int(w * 2), int(h * 2)), resample=Image.Resampling.LANCZOS)
+        max_dim = max(w, h)
+
+        # Keep OCR workload bounded on very large uploads.
+        if max_dim > settings.OCR_MAX_DIM:
+            scale = settings.OCR_MAX_DIM / float(max_dim)
+            new_w = max(1, int(w * scale))
+            new_h = max(1, int(h * scale))
+            image = image.resize((new_w, new_h), resample=Image.Resampling.LANCZOS)
+            w, h = image.size
+            max_dim = max(w, h)
+
+        # Mild upscale helps small screenshots while keeping latency reasonable.
+        if max_dim < settings.OCR_UPSCALE_MIN_DIM:
+            scale = max(1.0, settings.OCR_UPSCALE_FACTOR)
+            image = image.resize((int(w * scale), int(h * scale)), resample=Image.Resampling.LANCZOS)
 
                                                                
         image = ImageOps.autocontrast(image)
@@ -89,8 +109,27 @@ def _preprocess_image(image):
 def _pil_to_jpg_bytes(image: "Image") -> bytes:
     """Encode PIL image to jpg bytes for OCR engines expecting file input."""
     buffer = BytesIO()
-    image.save(buffer, format="JPEG", quality=95)
+    image.save(buffer, format="JPEG", quality=88)
     return buffer.getvalue()
+
+
+def _ocr_cache_get(key: str) -> str | None:
+    cached = _OCR_CACHE.get(key)
+    if not cached:
+        return None
+
+    created_at, text = cached
+    if time.time() - created_at > _OCR_CACHE_TTL_SEC:
+        _OCR_CACHE.pop(key, None)
+        return None
+    return text
+
+
+def _ocr_cache_set(key: str, text: str) -> None:
+    if len(_OCR_CACHE) >= _OCR_CACHE_MAX_ITEMS:
+        oldest_key = min(_OCR_CACHE.items(), key=lambda item: item[1][0])[0]
+        _OCR_CACHE.pop(oldest_key, None)
+    _OCR_CACHE[key] = (time.time(), text)
 
 
 def _crop_text_region(image):
@@ -145,22 +184,12 @@ def _extract_with_tesseract(image: "Image") -> str:
     Extract text using Tesseract OCR with enhanced PSM for handwriting.
     """
     try:
-        from PIL import ImageOps
         import pytesseract
 
-                                                                               
-        variants = [
-            ("base", image),
-            ("autocontrast", ImageOps.autocontrast(image.convert("L"))),
-            ("invert", ImageOps.invert(ImageOps.autocontrast(image.convert("L")))),
-        ]
-
+        variants = [("base", image)]
         configs = [
-                                                                      
-            "--psm 7 --oem 3 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._- ",
-            "--psm 13 --oem 3 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._- ",
-            "--psm 11 --oem 3",
             "--psm 6 --oem 3",
+            "--psm 11 --oem 3",
         ]
 
         best_text = ""
@@ -205,37 +234,36 @@ def _extract_with_paddle(image_bytes: bytes) -> str:
         if paddle_ocr is None:
             return ""
 
-                                               
-        import tempfile
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp:
-            tmp.write(image_bytes)
-            tmp_path = tmp.name
+        import cv2
+        import numpy as np
+
+        image_array = np.frombuffer(image_bytes, dtype=np.uint8)
+        image = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
+        if image is None:
+            return ""
 
         try:
-            result = paddle_ocr.ocr(tmp_path, cls=True)
-            text_parts = []
+            result = paddle_ocr.ocr(image, cls=False)
+        except Exception:
+            # Keep compatibility with older PaddleOCR variants.
+            result = paddle_ocr.ocr(image, cls=True)
 
-                                                                                                        
-            if result and isinstance(result, list) and isinstance(result[0], dict):
-                for page in result:
-                    rec_texts = page.get("rec_texts") or []
-                    text_parts.extend([t for t in rec_texts if t])
-            else:
-                for line in result or []:
-                    for word_info in line:
-                        if word_info and len(word_info) >= 2:
-                            text_parts.append(word_info[1][0])
-            
-            text = " ".join(text_parts).strip()
-            if text:
-                logger.info("PaddleOCR extracted %d characters", len(text))
-            return text
-        finally:
-            import os
-            try:
-                os.unlink(tmp_path)
-            except Exception:
-                pass
+        text_parts = []
+
+        if result and isinstance(result, list) and isinstance(result[0], dict):
+            for page in result:
+                rec_texts = page.get("rec_texts") or []
+                text_parts.extend([t for t in rec_texts if t])
+        else:
+            for line in result or []:
+                for word_info in line:
+                    if word_info and len(word_info) >= 2:
+                        text_parts.append(word_info[1][0])
+
+        text = " ".join(text_parts).strip()
+        if text:
+            logger.info("PaddleOCR extracted %d characters", len(text))
+        return text
     except Exception as e:
         logger.warning("PaddleOCR extraction failed: %s", e)
         return ""
@@ -292,11 +320,22 @@ def extract_text_from_image(image_bytes: bytes) -> str:
     Pipeline:
     1. Preprocess image (contrast, deskew, upscale)
     2. PaddleOCR primary
-    3. EasyOCR fallback
-    4. Tesseract tertiary fallback
+    3. Tesseract fallback
+    4. EasyOCR fallback (optional)
     """
     try:
         from PIL import Image
+
+        image_hash = hashlib.md5(image_bytes).hexdigest()
+        cached_text = _ocr_cache_get(image_hash)
+        if cached_text is not None:
+            logger.info("OCR cache hit: %d chars", len(cached_text))
+            return cached_text
+
+        started_at = time.perf_counter()
+
+        def _time_budget_exceeded() -> bool:
+            return (time.perf_counter() - started_at) >= settings.OCR_FALLBACK_TIME_BUDGET_SEC
 
         image = Image.open(BytesIO(image_bytes))
 
@@ -306,7 +345,6 @@ def extract_text_from_image(image_bytes: bytes) -> str:
 
         original_image = image.copy()
         processed_image = _preprocess_image(image)
-        cropped_image = _crop_text_region(processed_image)
 
                                               
         logger.info("OCR Stage 1: PaddleOCR primary")
@@ -314,17 +352,18 @@ def extract_text_from_image(image_bytes: bytes) -> str:
         text = _extract_with_paddle(paddle_bytes)
         if text:
             logger.info("✅ PaddleOCR primary extracted %d chars", len(text))
-            return _postprocess_ocr_text(text)
+            final_text = _postprocess_ocr_text(text)
+            _ocr_cache_set(image_hash, final_text)
+            return final_text
 
-                                             
-        logger.info("OCR Stage 2: EasyOCR fallback")
-        text = _extract_with_easyocr(paddle_bytes)
-        if text:
-            logger.info("✅ EasyOCR fallback extracted %d chars", len(text))
-            return _postprocess_ocr_text(text)
+        if _time_budget_exceeded():
+            logger.warning("OCR time budget reached after Paddle stage")
+            return ""
 
-                                                        
-        logger.info("OCR Stage 3: Tesseract tertiary fallback")
+        # Crop only for fallback path to keep fast-path latency lower.
+        cropped_image = _crop_text_region(processed_image)
+
+        logger.info("OCR Stage 2: Tesseract fallback")
         text = _extract_with_tesseract(processed_image)
         if not text:
             text = _extract_with_tesseract(cropped_image)
@@ -332,8 +371,23 @@ def extract_text_from_image(image_bytes: bytes) -> str:
             text = _extract_with_tesseract(original_image)
 
         if text:
-            logger.info("✅ Tesseract tertiary extracted %d chars", len(text))
-            return _postprocess_ocr_text(text)
+            logger.info("✅ Tesseract fallback extracted %d chars", len(text))
+            final_text = _postprocess_ocr_text(text)
+            _ocr_cache_set(image_hash, final_text)
+            return final_text
+
+        if _time_budget_exceeded():
+            logger.warning("OCR time budget reached before EasyOCR stage")
+            return ""
+
+        if settings.OCR_ENABLE_EASYOCR_FALLBACK:
+            logger.info("OCR Stage 3: EasyOCR fallback")
+            text = _extract_with_easyocr(paddle_bytes)
+            if text:
+                logger.info("✅ EasyOCR fallback extracted %d chars", len(text))
+                final_text = _postprocess_ocr_text(text)
+                _ocr_cache_set(image_hash, final_text)
+                return final_text
         
         logger.warning("All OCR engines failed")
         return ""

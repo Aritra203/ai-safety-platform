@@ -9,6 +9,7 @@ import {
   Scale,
   Zap,
 } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { AnalysisResult } from "@/types";
 import { generateFIR, downloadFIR } from "@/services/api";
 import toast from "react-hot-toast";
@@ -35,6 +36,7 @@ const categoryLabels: Record<string, string> = {
 };
 
 export default function ResultsPanel({ result, loading }: Props) {
+  const { data: session } = useSession();
   const [showFIRModal, setShowFIRModal] = useState(false);
   const [generatingFIR, setGeneratingFIR] = useState(false);
   const [firId, setFirId] = useState<string | null>(null);
@@ -44,7 +46,7 @@ export default function ResultsPanel({ result, loading }: Props) {
     setGeneratingFIR(true);
 
     try {
-      const { fir_id } = await generateFIR(result.id);
+      const { fir_id } = await generateFIR(result.id, session?.user);
       setFirId(fir_id);
       setShowFIRModal(true);
       toast.success("FIR generated successfully");
@@ -203,7 +205,7 @@ export default function ResultsPanel({ result, loading }: Props) {
             {firId && (
               <button
                 type="button"
-                onClick={() => downloadFIR(firId)}
+                onClick={() => downloadFIR(firId, session?.user)}
                 className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400"
               >
                 <Download size={15} />
@@ -214,7 +216,14 @@ export default function ResultsPanel({ result, loading }: Props) {
         )}
       </div>
 
-      {showFIRModal && firId && <FIRModal firId={firId} result={result} onClose={() => setShowFIRModal(false)} />}
+      {showFIRModal && firId && (
+        <FIRModal
+          firId={firId}
+          result={result}
+          user={session?.user}
+          onClose={() => setShowFIRModal(false)}
+        />
+      )}
     </>
   );
 }

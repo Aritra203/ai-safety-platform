@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Download, FileText, Calendar, User, AlertCircle, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
+import { useSession } from "next-auth/react";
 import { downloadFIR, firHistoryUpdatedEventName, getFIRHistory } from "@/services/api";
 
 interface FIRItem {
@@ -18,12 +19,17 @@ interface FIRItem {
 }
 
 export default function FIRHistory() {
+  const { data: session, status } = useSession();
   const [firs, setFirs] = useState<FIRItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState(0);
 
   useEffect(() => {
+    if (status === "loading") {
+      return;
+    }
+
     const refresh = () => {
       void fetchFIRHistory();
     };
@@ -34,13 +40,13 @@ export default function FIRHistory() {
     return () => {
       window.removeEventListener(firHistoryUpdatedEventName, refresh);
     };
-  }, []);
+  }, [status, session?.user?.id, session?.user?.email]);
 
   const fetchFIRHistory = async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await getFIRHistory(20, 0);
+      const response = await getFIRHistory(20, 0, session?.user);
       setFirs(response.firs);
       setTotalCount(response.total);
     } catch (err) {
@@ -54,7 +60,7 @@ export default function FIRHistory() {
 
   const handleDownloadFIR = (firId: string) => {
     try {
-      downloadFIR(firId);
+      downloadFIR(firId, session?.user);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to download FIR";
       toast.error(message);

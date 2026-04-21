@@ -69,6 +69,39 @@ class FIRService:
         return f"FIR-{datetime.utcnow().strftime('%Y%m%d')}-{uuid.uuid4().hex[:8].upper()}"
 
     @staticmethod
+    def _normalize_user_scope(
+        user_id: str | None,
+        user_email: str | None,
+    ) -> tuple[str | None, str | None]:
+        normalized_id = (user_id or "").strip() or None
+        normalized_email = (user_email or "").strip().lower() or None
+        return normalized_id, normalized_email
+
+    @staticmethod
+    def _owner_filter(user_id: str | None, user_email: str | None) -> dict | None:
+        conditions = []
+        if user_id:
+            conditions.append({"owner_user_id": user_id})
+        if user_email:
+            conditions.append({"owner_email": user_email})
+
+        if not conditions:
+            return None
+        if len(conditions) == 1:
+            return conditions[0]
+        return {"$or": conditions}
+
+    @staticmethod
+    def _record_matches_owner(record: dict, user_id: str | None, user_email: str | None) -> bool:
+        owner_user_id = record.get("owner_user_id")
+        owner_email_raw = record.get("owner_email")
+        owner_email = owner_email_raw.lower() if isinstance(owner_email_raw, str) else owner_email_raw
+        return bool(
+            (user_id and owner_user_id == user_id)
+            or (user_email and owner_email == user_email)
+        )
+
+    @staticmethod
     def _cloudinary_public_id_candidates(fir_id: str, pdf_url: str | None) -> list[str]:
         """Derive likely Cloudinary raw public_id values for signed download."""
         candidates: list[str] = []
@@ -137,12 +170,23 @@ class FIRService:
         return pdf_url
 
                                                                     
-    async def create_fir_record(self, analysis_id: str) -> str:
+    async def create_fir_record(
+        self,
+        analysis_id: str,
+        user_id: str | None = None,
+        user_email: str | None = None,
+    ) -> str:
+        user_id, user_email = self._normalize_user_scope(user_id, user_email)
+        if not user_id and not user_email:
+            raise ValueError("User identity required")
+
         if self.db is None:
             fir_id = self._new_fir_id()
             _EPHEMERAL_FIR_RECORDS[fir_id] = {
                 "fir_id": fir_id,
                 "analysis_id": analysis_id,
+                "owner_user_id": user_id,
+                "owner_email": user_email,
                 "status": "draft",
                 "created_at": datetime.utcnow(),
                 "pdf_path": None,
@@ -169,6 +213,8 @@ class FIRService:
         await self.db.fir_reports.insert_one({
             "fir_id": fir_id,
             "analysis_id": analysis_id,
+            "owner_user_id": user_id,
+            "owner_email": user_email,
             "status": "draft",
             "analysis_found": bool(analysis),
             "created_at": datetime.utcnow(),
@@ -185,12 +231,24 @@ class FIRService:
         return fir_id
 
                                                                     
-    async def generate_fir_pdf(self, data: FinalizeFIRRequest) -> str:
+    async def generate_fir_pdf(
+        self,
+        data: FinalizeFIRRequest,
+        user_id: str | None = None,
+        user_email: str | None = None,
+    ) -> str:
+        user_id, user_email = self._normalize_user_scope(user_id, user_email)
+        owner_filter = self._owner_filter(user_id, user_email)
+        if owner_filter is None:
+            raise ValueError("User identity required")
+
         fir_record = None
         analysis = None
         now_utc = datetime.utcnow()
         if self.db is not None:
-            fir_record = await self.db.fir_reports.find_one({"fir_id": data.fir_id})
+            fir_record = await self.db.fir_reports.find_one({"fir_id": data.fir_id, **owner_filter})
+            if not fir_record:
+                raise ValueError(f"FIR {data.fir_id} not found")
             analysis = await self.db.analyses.find_one({"id": data.analysis_id})
         else:
             logger.warning("MongoDB unavailable; finalizing FIR in non-persistent mode")
@@ -214,12 +272,16 @@ class FIRService:
             {
                 "fir_id": data.fir_id,
                 "analysis_id": data.analysis_id,
+                "owner_user_id": user_id,
+                "owner_email": user_email,
                 "created_at": now_utc,
             },
         )
         _EPHEMERAL_FIR_RECORDS[data.fir_id].update({
             "status": "finalized",
             "analysis_id": data.analysis_id,
+            "owner_user_id": user_id,
+            "owner_email": user_email,
             "pdf_path": str(pdf_path),
             "pdf_url": pdf_url,
             "complainant_name": data.complainant_name,
@@ -240,11 +302,13 @@ class FIRService:
                 else _EPHEMERAL_FIR_RECORDS[data.fir_id].get("created_at", now_utc)
             )
             await self.db.fir_reports.update_one(
-                {"fir_id": data.fir_id},
+                {"fir_id": data.fir_id, **owner_filter},
                 {
                     "$set": {
                         "status": "finalized",
                         "analysis_id": data.analysis_id,
+                        "owner_user_id": user_id,
+                        "owner_email": user_email,
                         "pdf_path": str(pdf_path),
                         "pdf_url": pdf_url,
                         "complainant_name": data.complainant_name,
@@ -279,6 +343,8 @@ class FIRService:
                         "$set": {
                             "status": record.get("status", "draft"),
                             "analysis_id": record.get("analysis_id"),
+                            "owner_user_id": record.get("owner_user_id"),
+                            "owner_email": record.get("owner_email"),
                             "pdf_path": record.get("pdf_path"),
                             "pdf_url": record.get("pdf_url"),
                             "complainant_name": record.get("complainant_name"),
@@ -309,9 +375,23 @@ class FIRService:
             raise ValueError(f"PDF for FIR {fir_id} not ready")
         return record["pdf_path"]
 
-    async def get_fir_download_targets(self, fir_id: str) -> tuple[str | None, str | None]:
+    async def get_fir_download_targets(
+        self,
+        fir_id: str,
+        user_id: str | None = None,
+        user_email: str | None = None,
+    ) -> tuple[str | None, str | None]:
         """Return local PDF path and cloud URL for download fallback handling."""
+        user_id, user_email = self._normalize_user_scope(user_id, user_email)
+        owner_filter = self._owner_filter(user_id, user_email)
+        if owner_filter is None:
+            raise ValueError("User identity required")
+
         if self.db is None:
+            ephemeral_record = _EPHEMERAL_FIR_RECORDS.get(fir_id)
+            if not ephemeral_record or not self._record_matches_owner(ephemeral_record, user_id, user_email):
+                raise ValueError(f"FIR {fir_id} not found")
+
             cached = _EPHEMERAL_FIR_DOWNLOADS.get(fir_id)
             if cached:
                 pdf_path, pdf_url = cached
@@ -323,10 +403,11 @@ class FIRService:
                 return local_path, None
 
             raise ValueError("FIR download not available in non-persistent mode")
-        record = await self.db.fir_reports.find_one({"fir_id": fir_id})
+        record = await self.db.fir_reports.find_one({"fir_id": fir_id, **owner_filter})
         if not record:
             cached = _EPHEMERAL_FIR_DOWNLOADS.get(fir_id)
-            if cached:
+            ephemeral_record = _EPHEMERAL_FIR_RECORDS.get(fir_id)
+            if cached and ephemeral_record and self._record_matches_owner(ephemeral_record, user_id, user_email):
                 pdf_path, pdf_url = cached
                 pdf_url = self._prefer_signed_cloudinary_url(fir_id, pdf_url)
                 return pdf_path, pdf_url
@@ -344,14 +425,29 @@ class FIRService:
         return pdf_path, pdf_url
 
                                                                    
-    async def get_fir_history(self, limit: int = 50, skip: int = 0):
+    async def get_fir_history(
+        self,
+        limit: int = 50,
+        skip: int = 0,
+        user_id: str | None = None,
+        user_email: str | None = None,
+    ):
         """Fetch FIR history sorted by creation date (newest first)"""
+        user_id, user_email = self._normalize_user_scope(user_id, user_email)
+        owner_filter = self._owner_filter(user_id, user_email)
+        if owner_filter is None:
+            raise ValueError("User identity required")
+
         limit = max(1, min(limit, 100))
         skip = max(0, skip)
 
         if self.db is None:
             records = sorted(
-                _EPHEMERAL_FIR_RECORDS.values(),
+                [
+                    item
+                    for item in _EPHEMERAL_FIR_RECORDS.values()
+                    if self._record_matches_owner(item, user_id, user_email)
+                ],
                 key=lambda item: item.get("created_at") or datetime.min,
                 reverse=True,
             )
@@ -395,7 +491,7 @@ class FIRService:
 
         async def _fetch_page() -> list[dict]:
             cursor = (
-                self.db.fir_reports.find({}, projection)
+                self.db.fir_reports.find(owner_filter, projection)
                 .sort([
                     ("created_at", -1),
                     ("finalized_at", -1),
@@ -407,24 +503,20 @@ class FIRService:
             return await cursor.to_list(length=limit)
 
         async def _fetch_total() -> int:
-            try:
-                # Faster than full count on large collections.
-                return await self.db.fir_reports.estimated_document_count()
-            except Exception:
-                return await self.db.fir_reports.count_documents({})
+            return await self.db.fir_reports.count_documents(owner_filter)
 
         try:
             firs, total = await asyncio.gather(_fetch_page(), _fetch_total())
         except Exception as e:
             logger.warning("Primary FIR history query failed; using fallback query: %s", e)
             firs = await (
-                self.db.fir_reports.find({}, projection)
+                self.db.fir_reports.find(owner_filter, projection)
                 .sort("fir_id", -1)
                 .skip(skip)
                 .limit(limit)
                 .to_list(length=limit)
             )
-            total = await self.db.fir_reports.count_documents({})
+            total = await self.db.fir_reports.count_documents(owner_filter)
 
         def _to_datetime(value):
             if isinstance(value, datetime):

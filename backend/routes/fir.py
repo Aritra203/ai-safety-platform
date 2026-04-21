@@ -4,7 +4,7 @@ FIR routes: /generate-fir, /finalize-fir, /download-fir/{fir_id}
 
 import logging
 import os
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from fastapi.responses import FileResponse, RedirectResponse
 
 from backend.models.schemas import (
@@ -25,9 +25,27 @@ def get_fir_service(db=Depends(get_db_optional)) -> FIRService:
     return FIRService(db)
 
 
+def _extract_user_scope(request: Request) -> tuple[str | None, str | None]:
+    """Read user identity from headers (and query params for file-download fallback)."""
+    user_id = (
+        request.headers.get("x-user-id")
+        or request.query_params.get("user_id")
+        or ""
+    ).strip() or None
+
+    raw_email = (
+        request.headers.get("x-user-email")
+        or request.query_params.get("user_email")
+        or ""
+    ).strip()
+    user_email = raw_email.lower() if raw_email else None
+    return user_id, user_email
+
+
                                                                     
 @router.post("/generate-fir", response_model=FIRCreateResponse)
 async def generate_fir(
+    request: Request,
     body: GenerateFIRRequest,
     service: FIRService = Depends(get_fir_service),
 ):
@@ -36,7 +54,12 @@ async def generate_fir(
     Returns a fir_id for subsequent finalization and download.
     """
     try:
-        fir_id = await service.create_fir_record(body.analysis_id)
+        user_id, user_email = _extract_user_scope(request)
+        fir_id = await service.create_fir_record(
+            body.analysis_id,
+            user_id=user_id,
+            user_email=user_email,
+        )
         return FIRCreateResponse(
             fir_id=fir_id,
             message="FIR record created. Call /finalize-fir to generate the PDF.",
@@ -51,6 +74,7 @@ async def generate_fir(
                                                                     
 @router.post("/finalize-fir", response_model=FIRFinalizeResponse)
 async def finalize_fir(
+    request: Request,
     body: FinalizeFIRRequest,
     service: FIRService = Depends(get_fir_service),
 ):
@@ -59,7 +83,12 @@ async def finalize_fir(
     store metadata in MongoDB.
     """
     try:
-        pdf_url = await service.generate_fir_pdf(body)
+        user_id, user_email = _extract_user_scope(request)
+        pdf_url = await service.generate_fir_pdf(
+            body,
+            user_id=user_id,
+            user_email=user_email,
+        )
         return FIRFinalizeResponse(fir_id=body.fir_id, pdf_url=pdf_url)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -71,6 +100,7 @@ async def finalize_fir(
                                                                     
 @router.get("/download-fir/{fir_id}")
 async def download_fir(
+    request: Request,
     fir_id: str,
     service: FIRService = Depends(get_fir_service),
 ):
@@ -79,7 +109,12 @@ async def download_fir(
     Falls back to local file if Cloudinary URL unavailable.
     """
     try:
-        pdf_path, pdf_url = await service.get_fir_download_targets(fir_id)
+        user_id, user_email = _extract_user_scope(request)
+        pdf_path, pdf_url = await service.get_fir_download_targets(
+            fir_id,
+            user_id=user_id,
+            user_email=user_email,
+        )
 
                                          
         if pdf_path and os.path.exists(pdf_path):
@@ -107,6 +142,7 @@ async def download_fir(
                                                                    
 @router.get("/fir-history")
 async def get_fir_history(
+    request: Request,
     limit: int = 50,
     skip: int = 0,
     service: FIRService = Depends(get_fir_service),
@@ -116,7 +152,13 @@ async def get_fir_history(
     Returns list of FIRs sorted by creation date (newest first).
     """
     try:
-        return await service.get_fir_history(limit=limit, skip=skip)
+        user_id, user_email = _extract_user_scope(request)
+        return await service.get_fir_history(
+            limit=limit,
+            skip=skip,
+            user_id=user_id,
+            user_email=user_email,
+        )
     except Exception as e:
         logger.exception("FIR history fetch failed")
         raise HTTPException(status_code=500, detail=str(e))

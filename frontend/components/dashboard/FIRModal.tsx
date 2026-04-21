@@ -2,17 +2,18 @@
 
 import { useState } from "react";
 import { CheckCircle2, Download, FileText, Loader2, X } from "lucide-react";
-import { generateFIRPDF, downloadFIR } from "@/services/api";
+import { ApiUserContext, generateFIRPDF, downloadFIR } from "@/services/api";
 import { AnalysisResult } from "@/types";
 import toast from "react-hot-toast";
 
 interface Props {
   firId: string;
   result: AnalysisResult;
+  user?: ApiUserContext;
   onClose: () => void;
 }
 
-export default function FIRModal({ firId, result, onClose }: Props) {
+export default function FIRModal({ firId, result, user, onClose }: Props) {
   const [form, setForm] = useState({
     complainant_name: "",
     complainant_contact: "",
@@ -41,7 +42,7 @@ export default function FIRModal({ firId, result, onClose }: Props) {
         ...form,
         legal_sections: result.legal_mappings.map((mapping) => `${mapping.law} ${mapping.section}`),
         evidence_urls: result.image_url ? [result.image_url] : [],
-      });
+      }, user);
       setSubmitted(true);
       toast.success("FIR report finalized");
     } catch (error) {
@@ -229,7 +230,7 @@ export default function FIRModal({ firId, result, onClose }: Props) {
             <div className="mt-6 flex flex-wrap justify-center gap-3">
               <button
                 type="button"
-                onClick={() => downloadFIR(firId)}
+                onClick={() => downloadFIR(firId, user)}
                 className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-orange-600 to-amber-500 px-5 py-3 text-sm font-bold text-white"
               >
                 <Download size={15} />
